@@ -1,0 +1,13 @@
+.header {
+  background-color: #E6F3FF;
+  padding: 20px;
+  text-align: center;
+  border-bottom: 2px solid #ddd;
+}
+
+.logo {
+  font-size: 32px;
+  font-weight: bold;
+  color: #003d7a; /* Dark blue */
+  letter-spacing: 1px;
+}

@@ -44,7 +44,7 @@
 
 .message {
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 16px;
   max-width: 80%;
   word-wrap: break-word;
 }
@@ -79,7 +79,7 @@
   flex: 1;
   padding: 10px 12px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s ease;
@@ -94,7 +94,7 @@
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

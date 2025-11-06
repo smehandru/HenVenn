@@ -9,8 +9,7 @@ import { mockReferrals } from './mockData'
 function App() {
   const [referrals, setReferrals] = useState<Referral[]>([])
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null)
-  const [leftChatMessages, setLeftChatMessages] = useState<ChatMessage[]>([])
-  const [rightChatMessages, setRightChatMessages] = useState<ChatMessage[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
 
   const handleFileUpload = (file: File) => {
@@ -29,35 +28,14 @@ function App() {
     setSelectedReferral(referral)
   }
 
-  const handleLeftChatSend = (message: string) => {
+  const handleChatSend = (message: string) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       text: message,
       sender: 'user',
       timestamp: new Date()
     }
-    setLeftChatMessages([...leftChatMessages, newMessage])
-
-    // TODO: Send to AI and get response
-    setTimeout(() => {
-      const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: 'Dette er en mock respons fra AI-assistenten.',
-        sender: 'ai',
-        timestamp: new Date()
-      }
-      setLeftChatMessages(prev => [...prev, aiResponse])
-    }, 1000)
-  }
-
-  const handleRightChatSend = (message: string) => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      text: message,
-      sender: 'user',
-      timestamp: new Date()
-    }
-    setRightChatMessages([...rightChatMessages, newMessage])
+    setChatMessages([...chatMessages, newMessage])
 
     // TODO: Send to AI and get response
     setTimeout(() => {
@@ -67,7 +45,7 @@ function App() {
         sender: 'ai',
         timestamp: new Date()
       }
-      setRightChatMessages(prev => [...prev, aiResponse])
+      setChatMessages(prev => [...prev, aiResponse])
     }, 1000)
   }
 
@@ -79,16 +57,14 @@ function App() {
           referrals={referrals}
           onReferralSelect={handleReferralSelect}
           selectedReferralId={selectedReferral?.id}
-          onFileUpload={handleFileUpload}
-          chatMessages={leftChatMessages}
-          onChatSend={handleLeftChatSend}
-          hasUploadedFile={!!uploadedFile}
         />
         <div className="divider" />
         <RightPanel
           selectedReferral={selectedReferral}
-          chatMessages={rightChatMessages}
-          onChatSend={handleRightChatSend}
+          chatMessages={chatMessages}
+          onChatSend={handleChatSend}
+          onFileUpload={handleFileUpload}
+          hasUploadedFile={!!uploadedFile}
         />
       </div>
     </div>

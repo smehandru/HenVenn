@@ -3,13 +3,16 @@ import './FileUpload.css'
 
 interface FileUploadProps {
   onFileUpload: (file: File) => void
+  disabled?: boolean
 }
 
-const FileUpload = ({ onFileUpload }: FileUploadProps) => {
+const FileUpload = ({ onFileUpload, disabled = false }: FileUploadProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClick = () => {
-    fileInputRef.current?.click()
+    if (!disabled) {
+      fileInputRef.current?.click()
+    }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,7 +26,12 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
 
   return (
     <div className="file-upload">
-      <button className="upload-button" onClick={handleClick}>
+      <button
+        className="upload-button"
+        onClick={handleClick}
+        disabled={disabled}
+        style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+      >
         Last opp PDF
       </button>
       <p className="upload-instruction">Last opp henvisninger først</p>
@@ -33,6 +41,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         accept="application/pdf"
         onChange={handleFileChange}
         style={{ display: 'none' }}
+        disabled={disabled}
       />
     </div>
   )

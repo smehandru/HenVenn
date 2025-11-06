@@ -12,8 +12,9 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "pdf-parse": "^1.1.1",
-    "pdfjs-dist": "^3.11.174"
+    "pdfjs-dist": "^3.11.174",
+    "@anthropic-ai/sdk": "^0.27.0",
+    "openai": "^4.20.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

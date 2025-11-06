@@ -9,13 +9,14 @@ interface RightPanelProps {
   onChatSend: (message: string) => void
   onFileUpload: (file: File) => void
   hasUploadedFile: boolean
+  isProcessing?: boolean
 }
 
-const RightPanel = ({ selectedReferral, chatMessages, onChatSend, onFileUpload, hasUploadedFile }: RightPanelProps) => {
+const RightPanel = ({ selectedReferral, chatMessages, onChatSend, onFileUpload, hasUploadedFile, isProcessing = false }: RightPanelProps) => {
   return (
     <div className="right-panel">
       <div className="scrollable-content">
-        <FileUpload onFileUpload={onFileUpload} />
+        <FileUpload onFileUpload={onFileUpload} disabled={isProcessing} />
 
         {hasUploadedFile && (
           selectedReferral ? (

@@ -1,22 +1,28 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
-import { Referral, ReferralAssessment } from '../types'
+import { AzureOpenAI } from 'openai'
+import '@azure/openai/types' // Type extensions for Azure
+import { ReferralAssessment } from '../types'
 
 /**
  * AI Service Configuration
  *
  * For å bruke dette:
  * 1. Opprett en .env fil i root-mappen
- * 2. Legg til: VITE_ANTHROPIC_API_KEY=din-api-nøkkel
- *    eller: VITE_OPENAI_API_KEY=din-api-nøkkel
+ * 2. Legg til én av følgende:
+ *    - VITE_ANTHROPIC_API_KEY=din-api-nøkkel (Claude)
+ *    - VITE_OPENAI_API_KEY=din-api-nøkkel (OpenAI)
+ *    - VITE_AZURE_OPENAI_API_KEY + VITE_AZURE_OPENAI_ENDPOINT (Azure/Microsoft Copilot)
  */
 
-export type AIProvider = 'claude' | 'openai'
+export type AIProvider = 'claude' | 'openai' | 'azure'
 
 interface AIServiceConfig {
   provider: AIProvider
   apiKey: string
   model?: string
+  endpoint?: string // For Azure OpenAI
+  deploymentName?: string // For Azure OpenAI
 }
 
 /**
@@ -26,7 +32,9 @@ export class AIService {
   private provider: AIProvider
   private anthropic?: Anthropic
   private openai?: OpenAI
+  private azureOpenAI?: AzureOpenAI
   private model: string
+  private deploymentName?: string
 
   constructor(config: AIServiceConfig) {
     this.provider = config.provider
@@ -37,7 +45,21 @@ export class AIService {
         dangerouslyAllowBrowser: true // For prototype - should use backend in production
       })
       this.model = config.model || 'claude-3-5-sonnet-20241022'
+    } else if (config.provider === 'azure') {
+      // Azure OpenAI konfiguration (Microsoft Copilot)
+      if (!config.endpoint) {
+        throw new Error('Azure OpenAI krever endpoint URL')
+      }
+      this.azureOpenAI = new AzureOpenAI({
+        apiKey: config.apiKey,
+        endpoint: config.endpoint,
+        apiVersion: '2024-10-21',
+        dangerouslyAllowBrowser: true // For prototype - should use backend in production
+      })
+      this.deploymentName = config.deploymentName || 'gpt-4'
+      this.model = config.model || 'gpt-4'
     } else {
+      // Standard OpenAI
       this.openai = new OpenAI({
         apiKey: config.apiKey,
         dangerouslyAllowBrowser: true // For prototype - should use backend in production
@@ -51,7 +73,7 @@ export class AIService {
    */
   async assessReferral(
     referralText: string,
-    referralNumber: number,
+    _referralNumber: number,
     priorityGuidelines: string
   ): Promise<ReferralAssessment> {
     const prompt = this.buildAssessmentPrompt(referralText, priorityGuidelines)
@@ -60,6 +82,8 @@ export class AIService {
 
     if (this.provider === 'claude' && this.anthropic) {
       response = await this.callClaude(prompt)
+    } else if (this.provider === 'azure' && this.azureOpenAI) {
+      response = await this.callAzureOpenAI(prompt)
     } else if (this.provider === 'openai' && this.openai) {
       response = await this.callOpenAI(prompt)
     } else {
@@ -158,6 +182,32 @@ Svar KUN med valid JSON, ingen annen tekst.`
   }
 
   /**
+   * Call Azure OpenAI API (Microsoft Copilot)
+   */
+  private async callAzureOpenAI(prompt: string): Promise<string> {
+    if (!this.azureOpenAI) throw new Error('Azure OpenAI not configured')
+    if (!this.deploymentName) throw new Error('Azure deployment name not configured')
+
+    const response = await this.azureOpenAI.chat.completions.create({
+      model: this.deploymentName, // Azure bruker deployment name i stedet for model
+      messages: [
+        {
+          role: 'system',
+          content: 'Du er en erfaren ortoped som vurderer medisinske henvisninger på norsk.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000
+    })
+
+    return response.choices[0]?.message?.content || ''
+  }
+
+  /**
    * Parse AI response to ReferralAssessment
    */
   private parseAssessmentResponse(response: string): ReferralAssessment {
@@ -201,13 +251,30 @@ Svar KUN med valid JSON, ingen annen tekst.`
 export function createAIService(): AIService | null {
   const claudeKey = import.meta.env.VITE_ANTHROPIC_API_KEY
   const openaiKey = import.meta.env.VITE_OPENAI_API_KEY
+  const azureKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY
+  const azureEndpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT
+  const azureDeployment = import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
 
+  // Prioriter Claude først (best for medisinsk bruk)
   if (claudeKey) {
     return new AIService({
       provider: 'claude',
       apiKey: claudeKey
     })
-  } else if (openaiKey) {
+  }
+
+  // Deretter Azure OpenAI (Microsoft Copilot - best for GDPR/norsk helsevesen)
+  else if (azureKey && azureEndpoint) {
+    return new AIService({
+      provider: 'azure',
+      apiKey: azureKey,
+      endpoint: azureEndpoint,
+      deploymentName: azureDeployment
+    })
+  }
+
+  // Til slutt standard OpenAI
+  else if (openaiKey) {
     return new AIService({
       provider: 'openai',
       apiKey: openaiKey

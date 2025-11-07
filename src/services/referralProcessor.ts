@@ -1,6 +1,6 @@
-import { Referral, ReferralAssessment } from '../types'
+import type { Referral } from '../types'
 import { extractReferralsFromPDF } from './pdfParser'
-import { AIService, createAIService } from './aiService'
+import { createAIService } from './aiService'
 import { fetchPriorityGuidelines } from './priorityGuidelinesService'
 
 /**

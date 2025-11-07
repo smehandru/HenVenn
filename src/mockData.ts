@@ -45,7 +45,11 @@ Dr. Hansen`,
         'Kombinert ligamentskade (MCL + korsbånd)',
         'Leddbruskkade'
       ],
-      recommendedDeadline: 'Innen 2 uker - behov for tidlig MR-diagnostikk og behandlingsplanlegging',
+      recommendedDeadline: {
+        deadline: 'Innen 2 uker',
+        reasoning: 'Akutt ligamentskade med betydelig funksjonsnedsettelse krever tidlig MR-diagnostikk og behandlingsplanlegging for å unngå komplikasjoner og sikre optimal funksjon.',
+        guidelineReference: 'Side 23 i prioriteringsveilederen - akutte ligamentskader'
+      },
       priorityGroup: 'red'
     }
   },
@@ -92,7 +96,11 @@ Dr. Olsen`,
         'Fullstendig rotatorcuff-ruptur',
         'Subakromialt impingement'
       ],
-      recommendedDeadline: 'Innen 8 uker - betydelige smerter med nattsmerte krever MR og vurdering av behandlingsalternativer',
+      recommendedDeadline: {
+        deadline: 'Innen 8 uker',
+        reasoning: 'Betydelige smerter med nattsmerter og manglende respons på 4 måneders konservativ behandling indikerer behov for MR-vurdering og vurdering av behandlingsalternativer inkludert operasjon.',
+        guidelineReference: 'Side 45 i prioriteringsveilederen - rotatorcuff-patologi'
+      },
       priorityGroup: 'orange'
     }
   },
@@ -140,7 +148,11 @@ Dr. Berg`,
         'Labrum-skade',
         'Lumbal radikulopati'
       ],
-      recommendedDeadline: 'Innen 16 uker - elektiv vurdering for hofteprotese',
+      recommendedDeadline: {
+        deadline: 'Innen 16 uker',
+        reasoning: 'Bilateral coxartrose med stabil symptomatikk. Elektiv vurdering for hofteprotese basert på funksjonsnivå og livskvalitet.',
+        guidelineReference: 'Side 67 i prioriteringsveilederen - elektiv hoftekirurgi'
+      },
       priorityGroup: 'green'
     }
   },
@@ -188,9 +200,21 @@ Dr. Nilsen`,
         'Mild meniskskade',
         'Plica-syndrom'
       ],
-      recommendedDeadline: '',
       priorityGroup: 'rejected',
-      rejectionReason: 'Henvisningen vurderes avvist da tilstanden kan håndteres i primærhelsetjenesten. Det foreligger ingen objektive funn som indikerer behov for spesialistvurdering. Det anbefales fortsatt konservativ behandling med fysioterapi, treningsopptrapping og eventuelt NSAID ved behov. Ny vurdering hos fastlege dersom symptomene vedvarer eller forverres.'
+      rejection: {
+        reason: 'Tilstanden kan håndteres i primærhelsetjenesten. Ingen objektive funn som indikerer behov for spesialistvurdering på nåværende tidspunkt.',
+        missingInformation: [
+          'Mangler beskrivelse av forsøkt konservativ behandling',
+          'Ingen dokumentasjon på fysioterapibehandling',
+          'Mangler beskrivelse av funksjonsnivå og aktivitetsbegrensning'
+        ],
+        primaryCareActions: [
+          'Fysioterapi med fokus på styrketrening av quadriceps og baklår i 8-12 uker',
+          'Treningsopptrapping med gradvis økning av belastning',
+          'Prøv NSAID-behandling ved behov for smertelindring',
+          'Ny vurdering hos fastlege dersom symptomene vedvarer eller forverres etter 3 måneder'
+        ]
+      }
     }
   },
   {
@@ -234,9 +258,22 @@ Dr. Andersen`,
         'Lateral ligamentskade',
         'Kronisk ankelinstabilitet'
       ],
-      recommendedDeadline: '',
       priorityGroup: 'rejected',
-      rejectionReason: 'Henvisningen vurderes avvist da det ikke er utført nødvendig utredning i primærhelsetjenesten. Det mangler bildediagnostikk (røntgen) som bør vært utført ved initial skade. Tilstanden er 6 uker gammel og kan fortsatt behandles konservativt med fysioterapi. Det er ikke tilstrekkelig informasjon om behandlingsforsøk som er gjort. Anbefaler røntgen av ankel, fysioterapi minimum 6-8 uker, og ny vurdering hos fastlege dersom vedvarende problemer.'
+      rejection: {
+        reason: 'Utilstrekkelig utredning i primærhelsetjenesten. Manglende bildediagnostikk og dokumentasjon på konservativ behandling.',
+        missingInformation: [
+          'Mangler røntgen av ankel (bør vært tatt ved initial skade)',
+          'Ingen beskrivelse av behandlingsforsøk som er gjort',
+          'Mangler informasjon om funksjonsnivå og aktivitetsbegrensning',
+          'Ingen dokumentasjon på fysioterapibehandling'
+        ],
+        primaryCareActions: [
+          'Ta røntgen av ankel for å utelukke benskade',
+          'Start fysioterapi med fokus på proprioseptiv trening og styrking i minimum 6-8 uker',
+          'Vurder bruk av ankelstøtte/orthose ved aktivitet',
+          'Ny vurdering hos fastlege etter 8 uker hvis vedvarende instabilitet eller smerter'
+        ]
+      }
     }
   },
   {
@@ -283,7 +320,11 @@ Dr. Bakke`,
         'Thoracic outlet syndrome',
         'Perifer nerveskade (n. radialis)'
       ],
-      recommendedDeadline: 'Innen 2 uker - nevrologiske utfall krever rask vurdering for evt. kirurgi',
+      recommendedDeadline: {
+        deadline: 'Innen 2 uker',
+        reasoning: 'Progressive nevrologiske utfall med parese og nummenhet. MR viser betydelig diskusprolaps med nerverotkompresjon. Raskt behov for vurdering av kirurgisk dekompresjon for å forhindre permanent nerveskade.',
+        guidelineReference: 'Side 18 i prioriteringsveilederen - cervikal radikulopati med nevrologiske utfall'
+      },
       priorityGroup: 'red'
     }
   },
@@ -329,7 +370,11 @@ Dr. Lund`,
         'Lateral ligamentskade',
         'Osteoartritt i albue'
       ],
-      recommendedDeadline: 'Innen 10 uker - kronisk tilstand som krever vurdering for infiltrasjon eller evt. kirurgi',
+      recommendedDeadline: {
+        deadline: 'Innen 10 uker',
+        reasoning: 'Kronisk lateral epikondylitt med manglende respons på 2 måneders fysioterapi. Arbeidsrelatert belastning indikerer behov for vurdering av infiltrasjon (kortison/PRP) eller eventuelt kirurgisk behandling.',
+        guidelineReference: 'Side 52 i prioriteringsveilederen - kroniske seneskader'
+      },
       priorityGroup: 'orange'
     }
   }

@@ -92,10 +92,30 @@ function generateSummaryReport(referrals: Referral[]): string {
       report += `\nHenvisning #${ref.referralNumber}\n`
       report += `Pasient: ${ref.patientInfo.name}, ${ref.patientInfo.age} år (${ref.patientInfo.gender})\n`
       report += `Diagnose: ${ref.assessment?.tentativeDiagnosis}\n`
-      report += `Inntaksfrist: ${ref.assessment?.recommendedDeadline}\n`
 
-      if (ref.assessment?.rejectionReason) {
-        report += `Avvisningsårsak: ${ref.assessment.rejectionReason}\n`
+      if (ref.assessment?.recommendedDeadline) {
+        report += `Inntaksfrist: ${ref.assessment.recommendedDeadline.deadline}\n`
+        report += `Begrunnelse: ${ref.assessment.recommendedDeadline.reasoning}\n`
+        if (ref.assessment.recommendedDeadline.guidelineReference) {
+          report += `Referanse: ${ref.assessment.recommendedDeadline.guidelineReference}\n`
+        }
+      }
+
+      if (ref.assessment?.rejection) {
+        report += `\nAvvisning:\n`
+        report += `Årsak: ${ref.assessment.rejection.reason}\n`
+        if (ref.assessment.rejection.missingInformation.length > 0) {
+          report += `Manglende informasjon:\n`
+          ref.assessment.rejection.missingInformation.forEach(info => {
+            report += `  - ${info}\n`
+          })
+        }
+        if (ref.assessment.rejection.primaryCareActions.length > 0) {
+          report += `Anbefalte tiltak i primærhelsetjenesten:\n`
+          ref.assessment.rejection.primaryCareActions.forEach(action => {
+            report += `  - ${action}\n`
+          })
+        }
       }
 
       report += `\nNøkkeloppsummering:\n${ref.assessment?.keySummary}\n`

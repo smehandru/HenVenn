@@ -134,7 +134,7 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId }: Triag
                               <p>{referral.assessment.tentativeDiagnosis}</p>
                             </div>
 
-                            {referral.assessment.differentialDiagnoses.length > 0 && (
+                            {referral.assessment.differentialDiagnoses && referral.assessment.differentialDiagnoses.length > 0 && (
                               <div className="detail-section">
                                 <h4>Differensialdiagnoser</h4>
                                 <ul>
@@ -145,18 +145,49 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId }: Triag
                               </div>
                             )}
 
-                            <div className="detail-section">
-                              <h4>
-                                {config.key === 'rejected'
-                                  ? 'Årsak til avvisning'
-                                  : 'Anbefalt inntaksfrist'}
-                              </h4>
-                              <p>
-                                {config.key === 'rejected'
-                                  ? referral.assessment.rejectionReason
-                                  : referral.assessment.recommendedDeadline}
-                              </p>
-                            </div>
+                            {config.key === 'rejected' && referral.assessment.rejection ? (
+                              <>
+                                <div className="detail-section">
+                                  <h4>Årsak til avvisning</h4>
+                                  <p>{referral.assessment.rejection.reason}</p>
+                                </div>
+
+                                {referral.assessment.rejection.missingInformation.length > 0 && (
+                                  <div className="detail-section">
+                                    <h4>Manglende informasjon</h4>
+                                    <ul>
+                                      {referral.assessment.rejection.missingInformation.map((info, idx) => (
+                                        <li key={idx}>{info}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {referral.assessment.rejection.primaryCareActions.length > 0 && (
+                                  <div className="detail-section">
+                                    <h4>Anbefalte tiltak i primærhelsetjenesten</h4>
+                                    <ul>
+                                      {referral.assessment.rejection.primaryCareActions.map((action, idx) => (
+                                        <li key={idx}>{action}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </>
+                            ) : referral.assessment.recommendedDeadline ? (
+                              <>
+                                <div className="detail-section">
+                                  <h4>Anbefalt inntaksfrist</h4>
+                                  <p><strong>{referral.assessment.recommendedDeadline.deadline}</strong></p>
+                                  <p className="reasoning">{referral.assessment.recommendedDeadline.reasoning}</p>
+                                  {referral.assessment.recommendedDeadline.guidelineReference && (
+                                    <p className="guideline-ref">
+                                      <em>Ref: {referral.assessment.recommendedDeadline.guidelineReference}</em>
+                                    </p>
+                                  )}
+                                </div>
+                              </>
+                            ) : null}
                           </div>
                         )}
                       </div>

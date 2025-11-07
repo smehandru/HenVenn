@@ -16,10 +16,18 @@ export interface Referral {
 export interface ReferralAssessment {
   keySummary: string;
   tentativeDiagnosis: string;
-  differentialDiagnoses: string[];
-  recommendedDeadline: string;
+  differentialDiagnoses?: string[]; // Optional - bare hvis relevant
+  recommendedDeadline?: {
+    deadline: string; // F.eks. "4 uker"
+    reasoning: string; // Forklaring av hvorfor
+    guidelineReference?: string; // F.eks. "Side 12 i prioriteringsveilederen"
+  };
   priorityGroup: 'red' | 'orange' | 'green' | 'rejected';
-  rejectionReason?: string;
+  rejection?: {
+    reason: string; // Hvorfor henvisningen avvises
+    missingInformation: string[]; // Hva som mangler
+    primaryCareActions: string[]; // Tiltak i primærhelsetjenesten
+  };
 }
 
 export type PriorityGroup = 'red' | 'orange' | 'green' | 'rejected';

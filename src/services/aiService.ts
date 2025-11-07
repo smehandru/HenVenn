@@ -128,25 +128,48 @@ ${referralText}
 OPPGAVE:
 Analyser henvisningen og gi en strukturert vurdering på norsk i følgende JSON-format:
 
+For AKSEPTERTE henvisninger (red/orange/green):
 {
   "keySummary": "Konsis oppsummering av nøkkelsymptomer og funn (2-3 setninger)",
   "tentativeDiagnosis": "Tentativ diagnose",
-  "differentialDiagnoses": ["Diff.diagnose 1", "Diff.diagnose 2", "Diff.diagnose 3"],
-  "recommendedDeadline": "Anbefalt inntaksfrist basert på prioriteringsveilederen",
-  "priorityGroup": "red|orange|green|rejected",
-  "rejectionReason": "Hvis rejected: detaljert forklaring på hvorfor"
+  "differentialDiagnoses": ["Diff.diagnose 1", "Diff.diagnose 2"],  // VALGFRITT - kun hvis relevant
+  "recommendedDeadline": {
+    "deadline": "4 uker",
+    "reasoning": "Detaljert forklaring av hvorfor denne fristen anbefales",
+    "guidelineReference": "Side X i prioriteringsveilederen"  // VALGFRITT - hvis relevant
+  },
+  "priorityGroup": "red|orange|green"
 }
 
-KRITERIER FOR PRIORITERING:
-- red (≤4 uker): Akutte tilstander, betydelige nevrologiske utfall, progredierende symptomer
-- orange (5-12 uker): Betydelige symptomer, ikke respondert på konservativ behandling
-- green (>12 uker): Elektive tilstander, stabile symptomer
-- rejected: Kan håndteres i primærhelsetjenesten, manglende utredning, utilstrekkelig informasjon
+For AVVISTE henvisninger (rejected):
+{
+  "keySummary": "Konsis oppsummering av henvisningen",
+  "tentativeDiagnosis": "Foreløpig vurdering",
+  "priorityGroup": "rejected",
+  "rejection": {
+    "reason": "Klar forklaring på hvorfor henvisningen avvises",
+    "missingInformation": ["Mangler bildediagnostikk", "Ingen beskrivelse av konservativ behandling"],
+    "primaryCareActions": ["Prøv fysioterapi i 6-8 uker", "Ta røntgen av aktuelt område", "Prøv NSAID-behandling"]
+  }
+}
 
-Vurder også:
+VIKTIGE REGLER:
+1. differentialDiagnoses: Kun hvis det er klinisk relevant med flere diagnoser. Utelat feltet hvis diagnosen er klar.
+2. recommendedDeadline: Alltid inkluder detaljert begrunnelse. Referer til sidetal hvis mulig.
+3. rejection: Må være konstruktiv - si hva som mangler OG hva fastlegen kan gjøre.
+
+KRITERIER FOR PRIORITERING:
+- red (≤4 uker): Akutte tilstander, betydelige nevrologiske utfall, progredierende symptomer, røde flagg
+- orange (5-12 uker): Betydelige symptomer, ikke respondert på konservativ behandling, moderat funksjonshemming
+- green (>12 uker): Elektive tilstander, stabile symptomer, lav funksjonshemming
+- rejected: Kan håndteres i primærhelsetjenesten, manglende utredning, utilstrekkelig informasjon, ingen klar indikasjon
+
+Vurder alltid:
 - Er det røde flagg?
 - Er det gjort tilstrekkelig utredning i primærhelsetjenesten?
+- Er det forsøkt relevant konservativ behandling?
 - Er det tydelig indikasjon for spesialistvurdering?
+- Hva mangler eventuelt for å kunne vurdere henvisningen?
 
 Svar KUN med valid JSON, ingen annen tekst.`
   }
@@ -284,14 +307,52 @@ Svar KUN med valid JSON, ingen annen tekst.`
 
       const parsed = JSON.parse(jsonMatch[0])
 
-      return {
+      const assessment: ReferralAssessment = {
         keySummary: parsed.keySummary || '',
         tentativeDiagnosis: parsed.tentativeDiagnosis || '',
-        differentialDiagnoses: parsed.differentialDiagnoses || [],
-        recommendedDeadline: parsed.recommendedDeadline || '',
-        priorityGroup: parsed.priorityGroup || 'green',
-        rejectionReason: parsed.rejectionReason
+        priorityGroup: parsed.priorityGroup || 'green'
       }
+
+      // differentialDiagnoses er optional - bare hvis det finnes
+      if (parsed.differentialDiagnoses && parsed.differentialDiagnoses.length > 0) {
+        assessment.differentialDiagnoses = parsed.differentialDiagnoses
+      }
+
+      // recommendedDeadline med ny struktur (for aksepterte henvisninger)
+      if (parsed.recommendedDeadline) {
+        if (typeof parsed.recommendedDeadline === 'string') {
+          // Gammel format - konverter til ny struktur
+          assessment.recommendedDeadline = {
+            deadline: parsed.recommendedDeadline,
+            reasoning: 'Se prioriteringsveileder for detaljer'
+          }
+        } else {
+          // Ny format - bruk direkte
+          assessment.recommendedDeadline = {
+            deadline: parsed.recommendedDeadline.deadline || '',
+            reasoning: parsed.recommendedDeadline.reasoning || '',
+            guidelineReference: parsed.recommendedDeadline.guidelineReference
+          }
+        }
+      }
+
+      // rejection objekt (for avviste henvisninger)
+      if (parsed.rejection) {
+        assessment.rejection = {
+          reason: parsed.rejection.reason || '',
+          missingInformation: parsed.rejection.missingInformation || [],
+          primaryCareActions: parsed.rejection.primaryCareActions || []
+        }
+      } else if (parsed.rejectionReason) {
+        // Gammel format - konverter til ny struktur
+        assessment.rejection = {
+          reason: parsed.rejectionReason,
+          missingInformation: ['Se detaljer i begrunnelse'],
+          primaryCareActions: ['Kontakt spesialist for veiledning']
+        }
+      }
+
+      return assessment
     } catch (error) {
       console.error('Error parsing AI response:', error)
       console.error('Response was:', response)
@@ -300,10 +361,11 @@ Svar KUN med valid JSON, ingen annen tekst.`
       return {
         keySummary: 'Kunne ikke analysere henvisningen automatisk.',
         tentativeDiagnosis: 'Ukjent',
-        differentialDiagnoses: [],
-        recommendedDeadline: 'Manuell vurdering nødvendig',
         priorityGroup: 'green',
-        rejectionReason: undefined
+        recommendedDeadline: {
+          deadline: 'Manuell vurdering nødvendig',
+          reasoning: 'AI-systemet kunne ikke prosessere responsen korrekt.'
+        }
       }
     }
   }

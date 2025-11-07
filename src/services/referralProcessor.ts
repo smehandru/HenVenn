@@ -164,9 +164,11 @@ function createMockReferral(text: string, referralNumber: number): Referral {
     assessment: {
       keySummary: 'AI-vurdering ikke tilgjengelig. Legg til API-nøkkel for automatisk triagering.',
       tentativeDiagnosis: 'Manuell vurdering nødvendig',
-      differentialDiagnoses: [],
-      recommendedDeadline: 'Ikke vurdert',
-      priorityGroup: 'green'
+      priorityGroup: 'green',
+      recommendedDeadline: {
+        deadline: 'Ikke vurdert',
+        reasoning: 'AI-tjeneste er ikke konfigurert. Legg til API-nøkkel i .env-filen for automatisk vurdering.'
+      }
     }
   }
 }

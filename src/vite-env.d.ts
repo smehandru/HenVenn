@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_COPILOT_DIRECT_LINE_SECRET?: string
   readonly VITE_ANTHROPIC_API_KEY?: string
   readonly VITE_OPENAI_API_KEY?: string
   readonly VITE_AZURE_OPENAI_API_KEY?: string

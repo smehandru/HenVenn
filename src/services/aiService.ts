@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import { AzureOpenAI } from 'openai'
 import '@azure/openai/types' // Type extensions for Azure
+import { DirectLine } from 'botframework-directlinejs'
 import { ReferralAssessment } from '../types'
 
 /**
@@ -12,10 +13,11 @@ import { ReferralAssessment } from '../types'
  * 2. Legg til én av følgende:
  *    - VITE_ANTHROPIC_API_KEY=din-api-nøkkel (Claude)
  *    - VITE_OPENAI_API_KEY=din-api-nøkkel (OpenAI)
- *    - VITE_AZURE_OPENAI_API_KEY + VITE_AZURE_OPENAI_ENDPOINT (Azure/Microsoft Copilot)
+ *    - VITE_AZURE_OPENAI_API_KEY + VITE_AZURE_OPENAI_ENDPOINT (Azure OpenAI)
+ *    - VITE_COPILOT_DIRECT_LINE_SECRET (Microsoft Copilot Studio)
  */
 
-export type AIProvider = 'claude' | 'openai' | 'azure'
+export type AIProvider = 'claude' | 'openai' | 'azure' | 'copilot'
 
 interface AIServiceConfig {
   provider: AIProvider
@@ -23,6 +25,7 @@ interface AIServiceConfig {
   model?: string
   endpoint?: string // For Azure OpenAI
   deploymentName?: string // For Azure OpenAI
+  directLineSecret?: string // For Copilot Studio
 }
 
 /**
@@ -33,6 +36,7 @@ export class AIService {
   private anthropic?: Anthropic
   private openai?: OpenAI
   private azureOpenAI?: AzureOpenAI
+  private directLine?: DirectLine
   private model: string
   private deploymentName?: string
 
@@ -46,7 +50,7 @@ export class AIService {
       })
       this.model = config.model || 'claude-3-5-sonnet-20241022'
     } else if (config.provider === 'azure') {
-      // Azure OpenAI konfiguration (Microsoft Copilot)
+      // Azure OpenAI konfiguration
       if (!config.endpoint) {
         throw new Error('Azure OpenAI krever endpoint URL')
       }
@@ -58,6 +62,15 @@ export class AIService {
       })
       this.deploymentName = config.deploymentName || 'gpt-4'
       this.model = config.model || 'gpt-4'
+    } else if (config.provider === 'copilot') {
+      // Microsoft Copilot Studio via DirectLine
+      if (!config.directLineSecret) {
+        throw new Error('Copilot Studio krever DirectLine secret')
+      }
+      this.directLine = new DirectLine({
+        secret: config.directLineSecret
+      })
+      this.model = 'copilot-studio-agent'
     } else {
       // Standard OpenAI
       this.openai = new OpenAI({
@@ -76,18 +89,25 @@ export class AIService {
     _referralNumber: number,
     priorityGuidelines: string
   ): Promise<ReferralAssessment> {
-    const prompt = this.buildAssessmentPrompt(referralText, priorityGuidelines)
-
     let response: string
 
-    if (this.provider === 'claude' && this.anthropic) {
-      response = await this.callClaude(prompt)
-    } else if (this.provider === 'azure' && this.azureOpenAI) {
-      response = await this.callAzureOpenAI(prompt)
-    } else if (this.provider === 'openai' && this.openai) {
-      response = await this.callOpenAI(prompt)
+    if (this.provider === 'copilot' && this.directLine) {
+      // For Copilot Studio: Send bare henvisningsteksten
+      // Agenten har allerede prioriteringsveileder som kunnskapsbase
+      response = await this.callCopilotStudio(referralText)
     } else {
-      throw new Error('AI provider not configured')
+      // For andre providers: Send full prompt med veileder
+      const prompt = this.buildAssessmentPrompt(referralText, priorityGuidelines)
+
+      if (this.provider === 'claude' && this.anthropic) {
+        response = await this.callClaude(prompt)
+      } else if (this.provider === 'azure' && this.azureOpenAI) {
+        response = await this.callAzureOpenAI(prompt)
+      } else if (this.provider === 'openai' && this.openai) {
+        response = await this.callOpenAI(prompt)
+      } else {
+        throw new Error('AI provider not configured')
+      }
     }
 
     return this.parseAssessmentResponse(response)
@@ -182,7 +202,7 @@ Svar KUN med valid JSON, ingen annen tekst.`
   }
 
   /**
-   * Call Azure OpenAI API (Microsoft Copilot)
+   * Call Azure OpenAI API
    */
   private async callAzureOpenAI(prompt: string): Promise<string> {
     if (!this.azureOpenAI) throw new Error('Azure OpenAI not configured')
@@ -205,6 +225,50 @@ Svar KUN med valid JSON, ingen annen tekst.`
     })
 
     return response.choices[0]?.message?.content || ''
+  }
+
+  /**
+   * Call Microsoft Copilot Studio via DirectLine
+   */
+  private async callCopilotStudio(referralText: string): Promise<string> {
+    if (!this.directLine) throw new Error('Copilot Studio not configured')
+
+    const directLine = this.directLine // Local variable for TypeScript
+
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Copilot Studio timeout - ingen respons etter 60 sekunder'))
+      }, 60000) // 60 sekunder timeout
+
+      // Subscribe to bot messages
+      directLine.activity$
+        .filter((activity: any) => activity.type === 'message' && activity.from.id !== 'user')
+        .subscribe({
+          next: (activity: any) => {
+            clearTimeout(timeout)
+            const botMessage = activity.text || ''
+            resolve(botMessage)
+          },
+          error: (error: any) => {
+            clearTimeout(timeout)
+            reject(new Error(`Copilot Studio error: ${error.message}`))
+          }
+        })
+
+      // Send message to bot
+      directLine
+        .postActivity({
+          from: { id: 'user', name: 'HenVenn User' },
+          type: 'message',
+          text: referralText
+        })
+        .subscribe({
+          error: (error: any) => {
+            clearTimeout(timeout)
+            reject(new Error(`Failed to send message to Copilot: ${error.message}`))
+          }
+        })
+    })
   }
 
   /**
@@ -249,21 +313,31 @@ Svar KUN med valid JSON, ingen annen tekst.`
  * Create AI service instance from environment variables
  */
 export function createAIService(): AIService | null {
+  const copilotSecret = import.meta.env.VITE_COPILOT_DIRECT_LINE_SECRET
   const claudeKey = import.meta.env.VITE_ANTHROPIC_API_KEY
   const openaiKey = import.meta.env.VITE_OPENAI_API_KEY
   const azureKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY
   const azureEndpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT
   const azureDeployment = import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
 
-  // Prioriter Claude først (best for medisinsk bruk)
-  if (claudeKey) {
+  // Prioriter Copilot Studio først (best for norsk helsevesen med egendefinert agent)
+  if (copilotSecret) {
+    return new AIService({
+      provider: 'copilot',
+      apiKey: '', // Ikke brukt for Copilot
+      directLineSecret: copilotSecret
+    })
+  }
+
+  // Deretter Claude (best for medisinsk bruk)
+  else if (claudeKey) {
     return new AIService({
       provider: 'claude',
       apiKey: claudeKey
     })
   }
 
-  // Deretter Azure OpenAI (Microsoft Copilot - best for GDPR/norsk helsevesen)
+  // Deretter Azure OpenAI (best for GDPR/norsk helsevesen)
   else if (azureKey && azureEndpoint) {
     return new AIService({
       provider: 'azure',

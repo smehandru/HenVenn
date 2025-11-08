@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "node server.js",
     "build": "tsc && vite build",
+    "start": "node server.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
@@ -13,6 +15,9 @@
     "@anthropic-ai/sdk": "^0.27.0",
     "@azure/openai": "^2.0.0",
     "botframework-directlinejs": "^0.15.6",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "mammoth": "^1.11.0",
     "openai": "^4.20.0",
     "pdfjs-dist": "^3.11.174",

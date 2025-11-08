@@ -1,4 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist'
+import { extractTextFromImage } from './ocrService'
 
 // Set up PDF.js worker - use local worker instead of CDN for Vite compatibility
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -7,7 +8,42 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString()
 
 /**
+ * Extract images from a PDF page and convert to base64
+ */
+async function extractImagesFromPage(page: any): Promise<string[]> {
+  const images: string[] = []
+
+  try {
+    // Render page to canvas
+    const viewport = page.getViewport({ scale: 2.0 }) // Higher scale for better OCR
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d')
+
+    if (!context) {
+      throw new Error('Could not get canvas context')
+    }
+
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    }).promise
+
+    // Convert canvas to base64
+    const base64Image = canvas.toDataURL('image/png').split(',')[1]
+    images.push(base64Image)
+  } catch (error) {
+    console.error('Error extracting images from page:', error)
+  }
+
+  return images
+}
+
+/**
  * Extract text from a PDF file
+ * Automatically detects if PDF is scanned (image-based) and uses OCR
  * @param file - The PDF file to parse
  * @returns Promise with extracted text
  */
@@ -17,8 +53,10 @@ export async function extractTextFromPDF(file: File): Promise<string> {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
 
     let fullText = ''
+    let totalTextLength = 0
+    const pageTexts: string[] = []
 
-    // Extract text from each page
+    // First pass: Try to extract text normally
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum)
       const textContent = await page.getTextContent()
@@ -28,7 +66,35 @@ export async function extractTextFromPDF(file: File): Promise<string> {
         .map((item: any) => item.str)
         .join(' ')
 
+      pageTexts.push(pageText)
+      totalTextLength += pageText.trim().length
       fullText += pageText + '\n\n'
+    }
+
+    // Check if PDF is scanned (very little text extracted)
+    const avgTextPerPage = totalTextLength / pdf.numPages
+    const isScanned = avgTextPerPage < 50 // Less than 50 chars per page = likely scanned
+
+    if (isScanned) {
+      console.log('Scanned PDF detected - using OCR...')
+      fullText = '' // Reset
+
+      // Second pass: Extract images and use OCR
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum)
+        const images = await extractImagesFromPage(page)
+
+        for (const imageBase64 of images) {
+          try {
+            const ocrText = await extractTextFromImage(imageBase64)
+            fullText += ocrText + '\n\n'
+          } catch (error) {
+            console.error(`OCR failed for page ${pageNum}:`, error)
+            // Use whatever text was extracted (if any)
+            fullText += pageTexts[pageNum - 1] + '\n\n'
+          }
+        }
+      }
     }
 
     return fullText.trim()

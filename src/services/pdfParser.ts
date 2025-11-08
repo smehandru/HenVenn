@@ -1,11 +1,26 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import { extractTextFromImage } from './ocrService'
 
-// Set up PDF.js worker - use local worker instead of CDN for Vite compatibility
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+// Set up PDF.js worker
+// Use CDN in production for reliable worker loading
+// In development, we try to use local worker but fall back to CDN if it fails
+const isProduction = import.meta.env.PROD
+
+if (isProduction) {
+  // Production: Always use CDN (most reliable)
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`
+} else {
+  // Development: Try local worker, fallback to CDN
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString()
+  } catch (error) {
+    console.warn('Failed to load local worker, using CDN fallback')
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`
+  }
+}
 
 /**
  * Extract images from a PDF page and convert to base64

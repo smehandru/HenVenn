@@ -1,11 +1,12 @@
 import type { Referral } from '../types'
-import { extractReferralsFromPDF } from './pdfParser'
+import { extractReferralsFromPDF, parseReferralsFromText } from './pdfParser'
+import { extractTextFromDocx } from './docxParser'
 import { createAIService } from './aiService'
 import { fetchPriorityGuidelines } from './priorityGuidelinesService'
 
 /**
- * Process a PDF file containing referrals
- * 1. Extract text from PDF
+ * Process a PDF or Word document containing referrals
+ * 1. Extract text from document (PDF or DOCX)
  * 2. Split into individual referrals (regex pattern matching)
  * 3. If only one referral found, use AI to intelligently separate multiple referrals
  * 4. Get priority guidelines
@@ -17,11 +18,26 @@ export async function processReferralPDF(
   onProgress?: (current: number, total: number) => void
 ): Promise<Referral[]> {
   try {
-    // Step 1: Extract referral texts from PDF using regex pattern matching
-    let referralTexts = await extractReferralsFromPDF(file)
+    // Step 1: Extract referral texts from document (PDF or Word)
+    let referralTexts: string[]
+
+    const isWordDocument =
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      file.type === 'application/msword' ||
+      file.name.endsWith('.docx') ||
+      file.name.endsWith('.doc')
+
+    if (isWordDocument) {
+      console.log('Word document detected - extracting text...')
+      const fullText = await extractTextFromDocx(file)
+      referralTexts = parseReferralsFromText(fullText)
+    } else {
+      // PDF file
+      referralTexts = await extractReferralsFromPDF(file)
+    }
 
     if (referralTexts.length === 0) {
-      throw new Error('Ingen henvisninger funnet i PDF-filen')
+      throw new Error('Ingen henvisninger funnet i dokumentet')
     }
 
     // Step 2: Initialize AI service
@@ -96,7 +112,7 @@ export async function processReferralPDF(
 
     return referrals
   } catch (error) {
-    console.error('Error processing PDF:', error)
+    console.error('Error processing document:', error)
     throw error
   }
 }

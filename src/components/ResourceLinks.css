@@ -1,0 +1,59 @@
+.resource-links {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 2px solid #e1e8ed;
+  flex-wrap: wrap;
+}
+
+.resource-button {
+  flex: 1;
+  min-width: 180px;
+  padding: 12px 20px;
+  border: 2px solid #003d7a;
+  background: white;
+  color: #003d7a;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(0, 61, 122, 0.1);
+}
+
+.resource-button:hover {
+  background: linear-gradient(135deg, #003d7a 0%, #005aa7 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 61, 122, 0.25);
+}
+
+.resource-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 61, 122, 0.15);
+}
+
+.metodebok-button:hover {
+  background: linear-gradient(135deg, #2a5298 0%, #3d6db5 100%);
+}
+
+.veileder-button:hover {
+  background: linear-gradient(135deg, #1e5a8e 0%, #2c7bb8 100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .resource-links {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .resource-button {
+    min-width: 100%;
+  }
+}

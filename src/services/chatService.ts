@@ -37,15 +37,27 @@ export class ChatService {
     try {
       const threadId = await this.getThread()
 
-      // Add message to thread
+      // Add message to thread with instruction for natural conversation
+      const conversationalMessage = `${message}
+
+VIKTIG INSTRUKS FOR DETTE SPØRSMÅLET:
+- Svar på en naturlig, konversasjonell måte på norsk
+- IKKE bruk JSON-format
+- IKKE gi strukturerte vurderinger som for henvisninger
+- Gi et vennlig, hjelpsomt svar som en ortopedi-ekspert
+- Bruk punktlister hvis det gjør svaret klarere
+- Vær konsis men informativ`
+
       await this.openai.beta.threads.messages.create(threadId, {
         role: 'user',
-        content: message
+        content: conversationalMessage
       })
 
-      // Run the assistant
+      // Run the assistant with additional instructions
       const run = await this.openai.beta.threads.runs.create(threadId, {
-        assistant_id: this.assistantId
+        assistant_id: this.assistantId,
+        additional_instructions:
+          'Du er en hjelpsom ortopedi-assistent som svarer på generelle spørsmål. Svar på en vennlig, konversasjonell måte på norsk. IKKE bruk JSON-format. Gi naturlige, lett forståelige svar.'
       })
 
       // Wait for completion

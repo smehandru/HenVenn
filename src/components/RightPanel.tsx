@@ -1,5 +1,6 @@
 import './RightPanel.css'
 import FileUpload from './FileUpload'
+import ResourceLinks from './ResourceLinks'
 import { Referral } from '../types'
 
 interface RightPanelProps {
@@ -12,6 +13,7 @@ interface RightPanelProps {
 const RightPanel = ({ selectedReferral, onFileUpload, hasUploadedFile, isProcessing = false }: RightPanelProps) => {
   return (
     <div className="right-panel">
+      <ResourceLinks />
       <div className="scrollable-content">
         <FileUpload onFileUpload={onFileUpload} disabled={isProcessing} />
 

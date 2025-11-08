@@ -235,8 +235,14 @@ app.post('/api/claude/vision', async (req, res) => {
 })
 
 // Catch-all route - serve index.html for any non-API routes (for client-side routing)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+// In Express 5, we need to use a middleware approach instead of '*'
+app.use((req, res, next) => {
+  // Only serve index.html for non-API routes
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+  } else {
+    next()
+  }
 })
 
 // Start server

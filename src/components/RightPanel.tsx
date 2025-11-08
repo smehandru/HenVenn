@@ -1,18 +1,15 @@
 import './RightPanel.css'
-import ChatBot from './ChatBot'
 import FileUpload from './FileUpload'
-import { Referral, ChatMessage } from '../types'
+import { Referral } from '../types'
 
 interface RightPanelProps {
   selectedReferral: Referral | null
-  chatMessages: ChatMessage[]
-  onChatSend: (message: string) => void
   onFileUpload: (file: File) => void
   hasUploadedFile: boolean
   isProcessing?: boolean
 }
 
-const RightPanel = ({ selectedReferral, chatMessages, onChatSend, onFileUpload, hasUploadedFile, isProcessing = false }: RightPanelProps) => {
+const RightPanel = ({ selectedReferral, onFileUpload, hasUploadedFile, isProcessing = false }: RightPanelProps) => {
   return (
     <div className="right-panel">
       <div className="scrollable-content">
@@ -41,11 +38,6 @@ const RightPanel = ({ selectedReferral, chatMessages, onChatSend, onFileUpload, 
           )
         )}
       </div>
-      <ChatBot
-        messages={chatMessages}
-        onSend={onChatSend}
-        placeholder="Spør hvorfor AI vurderte slik..."
-      />
     </div>
   )
 }

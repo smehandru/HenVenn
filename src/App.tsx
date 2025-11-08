@@ -3,19 +3,25 @@ import './App.css'
 import Header from './components/Header'
 import LeftPanel from './components/LeftPanel'
 import RightPanel from './components/RightPanel'
+import FloatingChatBot from './components/FloatingChatBot'
 import { Referral, ChatMessage } from './types'
 import { mockReferrals } from './mockData'
 import { processReferralPDF } from './services/referralProcessor'
 import { createAIService } from './services/aiService'
+import { createChatService } from './services/chatService'
 
 function App() {
   const [referrals, setReferrals] = useState<Referral[]>([])
   const [selectedReferral, setSelectedReferral] = useState<Referral | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [isChatLoading, setIsChatLoading] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState<string>('')
   const [useMockData, setUseMockData] = useState(false)
+
+  // Initialize chat service for the floating chatbot
+  const chatService = createChatService()
 
   const handleFileUpload = async (file: File) => {
     setUploadedFile(file)
@@ -91,7 +97,7 @@ function App() {
     setSelectedReferral(referral)
   }
 
-  const handleChatSend = (message: string) => {
+  const handleChatSend = async (message: string) => {
     const newMessage: ChatMessage = {
       id: Date.now().toString(),
       text: message,
@@ -100,16 +106,41 @@ function App() {
     }
     setChatMessages([...chatMessages, newMessage])
 
-    // TODO: Send to AI and get response
-    setTimeout(() => {
+    // Check if chat service is available
+    if (!chatService) {
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: 'Chat-bot er ikke konfigurert. Vennligst legg til VITE_OPENAI_API_KEY og VITE_OPENAI_ASSISTANT_ID i .env-filen.',
+        sender: 'ai',
+        timestamp: new Date()
+      }
+      setChatMessages(prev => [...prev, errorMessage])
+      return
+    }
+
+    // Send to OpenAI Assistant and get response
+    setIsChatLoading(true)
+    try {
+      const responseText = await chatService.sendMessage(message)
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: 'Dette er en mock respons fra AI-assistenten om henvisningen.',
+        text: responseText,
         sender: 'ai',
         timestamp: new Date()
       }
       setChatMessages(prev => [...prev, aiResponse])
-    }, 1000)
+    } catch (error) {
+      console.error('Chat error:', error)
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: error instanceof Error ? error.message : 'Beklager, det oppstod en feil. Prøv igjen.',
+        sender: 'ai',
+        timestamp: new Date()
+      }
+      setChatMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsChatLoading(false)
+    }
   }
 
   return (
@@ -132,13 +163,16 @@ function App() {
         <div className="divider" />
         <RightPanel
           selectedReferral={selectedReferral}
-          chatMessages={chatMessages}
-          onChatSend={handleChatSend}
           onFileUpload={handleFileUpload}
           hasUploadedFile={!!uploadedFile}
           isProcessing={isProcessing}
         />
       </div>
+      <FloatingChatBot
+        messages={chatMessages}
+        onSend={handleChatSend}
+        isLoading={isChatLoading}
+      />
     </div>
   )
 }

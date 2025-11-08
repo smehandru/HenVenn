@@ -44,7 +44,7 @@ const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBo
       {/* Floating button */}
       {!isOpen && (
         <button className="floating-chat-button" onClick={toggleChat}>
-          💬 Snakk med Chat-bot
+          💬 Spør Henvenn
         </button>
       )}
 
@@ -52,7 +52,7 @@ const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBo
       {isOpen && (
         <div className="floating-chat-window">
           <div className="chat-header">
-            <h3>Ortopedi-assistent</h3>
+            <h3>Spør Henvenn</h3>
             <button className="close-button" onClick={toggleChat}>
               ✕
             </button>
@@ -62,12 +62,6 @@ const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBo
             {messages.length === 0 ? (
               <div className="no-messages">
                 <p>Hei! Jeg kan svare på spørsmål om ortopedi basert på prioriteringsveilederen og metodeboken.</p>
-                <p className="example-questions">Eksempler på spørsmål:</p>
-                <ul>
-                  <li>Hva er kriteriene for rød prioritet ved kneskader?</li>
-                  <li>Når skal en skulderhenvisning vurderes som oransje?</li>
-                  <li>Hva er røde flagg for ryggplager?</li>
-                </ul>
               </div>
             ) : (
               messages.map(message => (

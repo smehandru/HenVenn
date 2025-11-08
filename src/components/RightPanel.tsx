@@ -22,11 +22,6 @@ const RightPanel = ({ selectedReferral, onFileUpload, hasUploadedFile, isProcess
             <div className="referral-display">
               <h2>Henvisning #{selectedReferral.referralNumber}</h2>
               <div className="referral-text">
-                <h3>Pasientinformasjon</h3>
-                <p><strong>Navn:</strong> {selectedReferral.patientInfo.name}</p>
-                <p><strong>Alder:</strong> {selectedReferral.patientInfo.age} år</p>
-                <p><strong>Kjønn:</strong> {selectedReferral.patientInfo.gender}</p>
-
                 <h3>Fullstendig henvisningstekst</h3>
                 <div className="full-text">
                   {selectedReferral.fullText}

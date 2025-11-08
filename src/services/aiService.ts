@@ -12,12 +12,13 @@ import { ReferralAssessment } from '../types'
  * 1. Opprett en .env fil i root-mappen
  * 2. Legg til én av følgende:
  *    - VITE_ANTHROPIC_API_KEY=din-api-nøkkel (Claude)
- *    - VITE_OPENAI_API_KEY=din-api-nøkkel (OpenAI)
+ *    - VITE_OPENAI_API_KEY + VITE_OPENAI_ASSISTANT_ID (OpenAI Assistant med kunnskapsbase)
+ *    - VITE_OPENAI_API_KEY=din-api-nøkkel (Standard OpenAI)
  *    - VITE_AZURE_OPENAI_API_KEY + VITE_AZURE_OPENAI_ENDPOINT (Azure OpenAI)
  *    - VITE_COPILOT_DIRECT_LINE_SECRET (Microsoft Copilot Studio)
  */
 
-export type AIProvider = 'claude' | 'openai' | 'azure' | 'copilot'
+export type AIProvider = 'claude' | 'openai' | 'openai-assistant' | 'azure' | 'copilot'
 
 interface AIServiceConfig {
   provider: AIProvider
@@ -26,6 +27,7 @@ interface AIServiceConfig {
   endpoint?: string // For Azure OpenAI
   deploymentName?: string // For Azure OpenAI
   directLineSecret?: string // For Copilot Studio
+  assistantId?: string // For OpenAI Assistant
 }
 
 /**
@@ -39,6 +41,7 @@ export class AIService {
   private directLine?: DirectLine
   private model: string
   private deploymentName?: string
+  private assistantId?: string
 
   constructor(config: AIServiceConfig) {
     this.provider = config.provider
@@ -71,6 +74,17 @@ export class AIService {
         secret: config.directLineSecret
       })
       this.model = 'copilot-studio-agent'
+    } else if (config.provider === 'openai-assistant') {
+      // OpenAI Assistant with knowledge base
+      if (!config.assistantId) {
+        throw new Error('OpenAI Assistant krever Assistant ID')
+      }
+      this.openai = new OpenAI({
+        apiKey: config.apiKey,
+        dangerouslyAllowBrowser: true // For prototype - should use backend in production
+      })
+      this.assistantId = config.assistantId
+      this.model = 'openai-assistant'
     } else {
       // Standard OpenAI
       this.openai = new OpenAI({
@@ -95,6 +109,10 @@ export class AIService {
       // For Copilot Studio: Send bare henvisningsteksten
       // Agenten har allerede prioriteringsveileder som kunnskapsbase
       response = await this.callCopilotStudio(referralText)
+    } else if (this.provider === 'openai-assistant' && this.openai && this.assistantId) {
+      // For OpenAI Assistant: Send bare henvisningsteksten
+      // Assistenten har allerede prioriteringsveileder som kunnskapsbase
+      response = await this.callOpenAIAssistant(referralText)
     } else {
       // For andre providers: Send full prompt med veileder
       const prompt = this.buildAssessmentPrompt(referralText, priorityGuidelines)
@@ -295,6 +313,68 @@ Svar KUN med valid JSON, ingen annen tekst.`
   }
 
   /**
+   * Call OpenAI Assistant with knowledge base
+   */
+  private async callOpenAIAssistant(referralText: string): Promise<string> {
+    if (!this.openai) throw new Error('OpenAI not configured')
+    if (!this.assistantId) throw new Error('Assistant ID not configured')
+
+    try {
+      // Step 1: Create a thread
+      const thread = await this.openai.beta.threads.create()
+
+      // Step 2: Add message to thread
+      await this.openai.beta.threads.messages.create(thread.id, {
+        role: 'user',
+        content: referralText
+      })
+
+      // Step 3: Run the assistant
+      const run = await this.openai.beta.threads.runs.create(thread.id, {
+        assistant_id: this.assistantId
+      })
+
+      // Step 4: Wait for completion (with timeout)
+      let runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id)
+      let attempts = 0
+      const maxAttempts = 60 // 60 attempts * 1 second = 60 seconds timeout
+
+      while (runStatus.status !== 'completed' && attempts < maxAttempts) {
+        if (runStatus.status === 'failed' || runStatus.status === 'cancelled' || runStatus.status === 'expired') {
+          throw new Error(`Assistant run failed with status: ${runStatus.status}`)
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
+        runStatus = await this.openai.beta.threads.runs.retrieve(thread.id, run.id)
+        attempts++
+      }
+
+      if (runStatus.status !== 'completed') {
+        throw new Error('OpenAI Assistant timeout - ingen respons etter 60 sekunder')
+      }
+
+      // Step 5: Get the assistant's response
+      const messages = await this.openai.beta.threads.messages.list(thread.id)
+      const assistantMessage = messages.data.find(msg => msg.role === 'assistant')
+
+      if (!assistantMessage) {
+        throw new Error('Ingen svar fra OpenAI Assistant')
+      }
+
+      // Extract text from message content
+      const textContent = assistantMessage.content.find(content => content.type === 'text')
+      if (!textContent || textContent.type !== 'text') {
+        throw new Error('Ugyldig svarformat fra OpenAI Assistant')
+      }
+
+      return textContent.text.value
+    } catch (error: any) {
+      console.error('OpenAI Assistant error:', error)
+      throw new Error(`OpenAI Assistant feil: ${error.message}`)
+    }
+  }
+
+  /**
    * Parse AI response to ReferralAssessment
    */
   private parseAssessmentResponse(response: string): ReferralAssessment {
@@ -378,12 +458,22 @@ export function createAIService(): AIService | null {
   const copilotSecret = import.meta.env.VITE_COPILOT_DIRECT_LINE_SECRET
   const claudeKey = import.meta.env.VITE_ANTHROPIC_API_KEY
   const openaiKey = import.meta.env.VITE_OPENAI_API_KEY
+  const openaiAssistantId = import.meta.env.VITE_OPENAI_ASSISTANT_ID
   const azureKey = import.meta.env.VITE_AZURE_OPENAI_API_KEY
   const azureEndpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT
   const azureDeployment = import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
 
-  // Prioriter Copilot Studio først (best for norsk helsevesen med egendefinert agent)
-  if (copilotSecret) {
+  // Prioriter OpenAI Assistant først (best for egendefinert agent med kunnskapsbase)
+  if (openaiKey && openaiAssistantId) {
+    return new AIService({
+      provider: 'openai-assistant',
+      apiKey: openaiKey,
+      assistantId: openaiAssistantId
+    })
+  }
+
+  // Deretter Copilot Studio (alternativ for egendefinert agent)
+  else if (copilotSecret) {
     return new AIService({
       provider: 'copilot',
       apiKey: '', // Ikke brukt for Copilot
@@ -391,7 +481,7 @@ export function createAIService(): AIService | null {
     })
   }
 
-  // Deretter Claude (best for medisinsk bruk)
+  // Deretter Claude (best for medisinsk bruk uten kunnskapsbase)
   else if (claudeKey) {
     return new AIService({
       provider: 'claude',

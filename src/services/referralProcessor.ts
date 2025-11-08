@@ -6,28 +6,50 @@ import { fetchPriorityGuidelines } from './priorityGuidelinesService'
 /**
  * Process a PDF file containing referrals
  * 1. Extract text from PDF
- * 2. Split into individual referrals
- * 3. Assess each referral with AI
- * 4. Return structured referral objects
+ * 2. Split into individual referrals (regex pattern matching)
+ * 3. If only one referral found, use AI to intelligently separate multiple referrals
+ * 4. Get priority guidelines
+ * 5. Assess each referral with AI
+ * 6. Return structured referral objects
  */
 export async function processReferralPDF(
   file: File,
   onProgress?: (current: number, total: number) => void
 ): Promise<Referral[]> {
   try {
-    // Step 1: Extract referral texts from PDF
-    const referralTexts = await extractReferralsFromPDF(file)
+    // Step 1: Extract referral texts from PDF using regex pattern matching
+    let referralTexts = await extractReferralsFromPDF(file)
 
     if (referralTexts.length === 0) {
       throw new Error('Ingen henvisninger funnet i PDF-filen')
     }
 
-    // Step 2: Get priority guidelines
+    // Step 2: Initialize AI service
+    const aiService = createAIService()
+
+    // Step 3: If only one referral found by regex, try AI-based separation
+    // This handles PDFs without clear numbering or delimiters
+    if (referralTexts.length === 1 && aiService && referralTexts[0].length > 500) {
+      console.log('Only one referral found by regex - trying AI-based separation...')
+      try {
+        const aiSeparatedReferrals = await aiService.separateReferrals(referralTexts[0])
+
+        // Only use AI separation if it found multiple referrals
+        if (aiSeparatedReferrals.length > 1) {
+          console.log(`AI found ${aiSeparatedReferrals.length} referrals (regex found 1)`)
+          referralTexts = aiSeparatedReferrals
+        } else {
+          console.log('AI confirmed this is a single referral')
+        }
+      } catch (error) {
+        console.error('AI separation failed, using regex result:', error)
+        // Continue with regex result
+      }
+    }
+
+    // Step 4: Get priority guidelines
     const guidelines = await fetchPriorityGuidelines()
     const guidelinesText = formatGuidelinesForAI(guidelines)
-
-    // Step 3: Initialize AI service
-    const aiService = createAIService()
 
     if (!aiService) {
       // If no AI service, return referrals without assessment
@@ -35,7 +57,7 @@ export async function processReferralPDF(
       return referralTexts.map((text, index) => createMockReferral(text, index + 1))
     }
 
-    // Step 4: Process each referral with AI
+    // Step 5: Process each referral with AI
     const referrals: Referral[] = []
 
     for (let i = 0; i < referralTexts.length; i++) {

@@ -132,6 +132,82 @@ export class AIService {
   }
 
   /**
+   * Separate multiple referrals from a single text using AI
+   * This is used when the PDF contains multiple referrals without clear delimiters
+   */
+  async separateReferrals(fullText: string): Promise<string[]> {
+    const prompt = `Du er en AI-assistent som skal hjelpe med å identifisere og separere individuelle medisinske henvisninger fra en samlet tekst.
+
+TEKST FRA PDF:
+${fullText}
+
+OPPGAVE:
+Analyser teksten ovenfor og identifiser alle individuelle henvisninger. Hver henvisning inneholder typisk:
+- Pasientinformasjon (navn, alder, kjønn)
+- Symptomer og kliniske funn
+- Sykehistorie
+- Aktuell problemstilling
+
+Return et JSON-array hvor hvert element er teksten til én henvisning:
+
+{
+  "referrals": [
+    "Tekst for henvisning 1...",
+    "Tekst for henvisning 2...",
+    ...
+  ]
+}
+
+VIKTIG:
+- Hvis det bare er én henvisning i teksten, returner et array med ett element
+- Ikke endre eller forkorte teksten - inkluder all informasjon fra hver henvisning
+- Separer kun ved naturlige skiller mellom henvisninger
+- Hvis du finner nummerering (f.eks. "Henvisning 1", "Pasient 2"), bruk den som guide
+
+Svar KUN med valid JSON.`
+
+    let response: string
+
+    if (this.provider === 'claude' && this.anthropic) {
+      response = await this.callClaude(prompt)
+    } else if (this.provider === 'openai' && this.openai) {
+      response = await this.callOpenAI(prompt)
+    } else if (this.provider === 'azure' && this.azureOpenAI) {
+      response = await this.callAzureOpenAI(prompt)
+    } else if (this.provider === 'openai-assistant' && this.openai) {
+      // For OpenAI Assistant, use regular OpenAI API for this task
+      response = await this.callOpenAI(prompt)
+    } else {
+      // Fallback: return full text as single referral
+      console.warn('AI provider not configured for referral separation - returning full text')
+      return [fullText]
+    }
+
+    try {
+      // Extract JSON from response
+      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        console.warn('Could not extract JSON from AI response - returning full text')
+        return [fullText]
+      }
+
+      const parsed = JSON.parse(jsonMatch[0])
+
+      if (parsed.referrals && Array.isArray(parsed.referrals) && parsed.referrals.length > 0) {
+        return parsed.referrals.filter((r: string) => r.trim().length > 50) // Filter out very short texts
+      } else {
+        console.warn('No referrals found in AI response - returning full text')
+        return [fullText]
+      }
+    } catch (error) {
+      console.error('Error parsing AI separation response:', error)
+      console.error('Response was:', response)
+      // Fallback: return full text as single referral
+      return [fullText]
+    }
+  }
+
+  /**
    * Build the assessment prompt for AI
    */
   private buildAssessmentPrompt(referralText: string, priorityGuidelines: string): string {

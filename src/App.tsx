@@ -200,7 +200,6 @@ function App() {
           referrals={referrals}
           onReferralSelect={handleReferralSelect}
           selectedReferralId={selectedReferral?.id}
-          hasUploadedFile={!!uploadedFile}
         />
         <div className="divider" />
         <RightPanel

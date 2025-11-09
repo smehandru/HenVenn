@@ -9,10 +9,7 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  font-size: 32px;
-  font-weight: bold;
   color: #003d7a; /* Dark blue */
-  letter-spacing: 1px;
 }
 
 .logo-icon {
@@ -22,6 +19,22 @@
   filter: drop-shadow(0 2px 4px rgba(0, 61, 122, 0.15));
 }
 
+.logo-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .logo-text {
-  display: inline-block;
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.logo-subtitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #005aa7;
+  letter-spacing: 0.3px;
 }

@@ -8,6 +8,26 @@ interface FloatingChatBotProps {
   isLoading?: boolean
 }
 
+// Format AI response text with markdown-like formatting
+const formatMessageText = (text: string): JSX.Element[] => {
+  // Split by double newlines to create paragraphs
+  const paragraphs = text.split(/\n\n+/)
+
+  return paragraphs.map((para, idx) => {
+    // Process inline formatting (bold text with **)
+    const parts = para.split(/(\*\*.*?\*\*)/)
+    const formatted = parts.map((part, partIdx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        // Bold text
+        return <strong key={partIdx}>{part.slice(2, -2)}</strong>
+      }
+      return part
+    })
+
+    return <p key={idx}>{formatted}</p>
+  })
+}
+
 const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBotProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
@@ -69,7 +89,9 @@ const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBo
                   key={message.id}
                   className={`chat-message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`}
                 >
-                  <div className="message-content">{message.text}</div>
+                  <div className="message-content">
+                    {message.sender === 'ai' ? formatMessageText(message.text) : message.text}
+                  </div>
                 </div>
               ))
             )}

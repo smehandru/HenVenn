@@ -173,6 +173,20 @@
   border-bottom-left-radius: 4px;
 }
 
+/* Formatting for AI message content */
+.message-content p {
+  margin: 0 0 10px 0;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-content strong {
+  font-weight: 700;
+  color: #003d7a;
+}
+
 /* Typing indicator */
 .typing-indicator {
   display: flex;

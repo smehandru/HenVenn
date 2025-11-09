@@ -64,11 +64,30 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+.initial-instruction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.initial-instruction p {
+  color: #003d7a;
+  font-size: 20px;
+  font-weight: 600;
+}
+
 .no-selection {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
+  text-align: center;
+}
+
+.no-selection p {
   color: #666;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 500;
 }

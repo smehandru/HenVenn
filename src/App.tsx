@@ -118,27 +118,68 @@ function App() {
       return
     }
 
-    // Send to OpenAI Assistant and get response
+    // Send to OpenAI Assistant with streaming
     setIsChatLoading(true)
+
+    // Create a placeholder AI message that will be updated as chunks arrive
+    const aiMessageId = (Date.now() + 1).toString()
+    const aiMessage: ChatMessage = {
+      id: aiMessageId,
+      text: '',
+      sender: 'ai',
+      timestamp: new Date()
+    }
+    setChatMessages(prev => [...prev, aiMessage])
+
+    let accumulatedText = ''
+
     try {
-      const responseText = await chatService.sendMessage(message)
-      const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: responseText,
-        sender: 'ai',
-        timestamp: new Date()
-      }
-      setChatMessages(prev => [...prev, aiResponse])
+      await chatService.sendMessageStreaming(
+        message,
+        // onChunk - called for each text chunk
+        (chunk: string) => {
+          accumulatedText += chunk
+          setChatMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId ? { ...msg, text: accumulatedText } : msg
+            )
+          )
+        },
+        // onComplete - called when streaming is done
+        () => {
+          setIsChatLoading(false)
+        },
+        // onError - called if an error occurs
+        (error: Error) => {
+          console.error('Chat error:', error)
+          setChatMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? {
+                    ...msg,
+                    text: error.message || 'Beklager, det oppstod en feil. Prøv igjen.'
+                  }
+                : msg
+            )
+          )
+          setIsChatLoading(false)
+        }
+      )
     } catch (error) {
       console.error('Chat error:', error)
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        text: error instanceof Error ? error.message : 'Beklager, det oppstod en feil. Prøv igjen.',
-        sender: 'ai',
-        timestamp: new Date()
-      }
-      setChatMessages(prev => [...prev, errorMessage])
-    } finally {
+      setChatMessages(prev =>
+        prev.map(msg =>
+          msg.id === aiMessageId
+            ? {
+                ...msg,
+                text:
+                  error instanceof Error
+                    ? error.message
+                    : 'Beklager, det oppstod en feil. Prøv igjen.'
+              }
+            : msg
+        )
+      )
       setIsChatLoading(false)
     }
   }

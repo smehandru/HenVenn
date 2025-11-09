@@ -60,7 +60,7 @@ app.post('/api/openai/chat', async (req, res) => {
   }
 })
 
-// OpenAI Assistant endpoint
+// OpenAI Assistant endpoint (non-streaming)
 app.post('/api/openai/assistant', async (req, res) => {
   try {
     const { message, assistantId, threadId } = req.body
@@ -130,6 +130,79 @@ app.post('/api/openai/assistant', async (req, res) => {
   } catch (error) {
     console.error('OpenAI assistant error:', error)
     res.status(500).json({ error: error.message })
+  }
+})
+
+// OpenAI Assistant endpoint with Server-Sent Events streaming
+app.post('/api/openai/assistant/stream', async (req, res) => {
+  try {
+    const { message, assistantId, threadId, additionalInstructions } = req.body
+
+    const openai = getOpenAIClient()
+    if (!openai) {
+      return res.status(500).json({ error: 'OpenAI API key not configured' })
+    }
+
+    if (!assistantId) {
+      return res.status(400).json({ error: 'Assistant ID required' })
+    }
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+
+    // Create or use existing thread
+    let currentThreadId = threadId
+    if (!currentThreadId) {
+      const thread = await openai.beta.threads.create()
+      currentThreadId = thread.id
+      // Send thread ID to client
+      res.write(`data: ${JSON.stringify({ type: 'threadId', threadId: currentThreadId })}\n\n`)
+    }
+
+    // Add message to thread
+    await openai.beta.threads.messages.create(currentThreadId, {
+      role: 'user',
+      content: message
+    })
+
+    // Create run with streaming
+    const runOptions = {
+      assistant_id: assistantId
+    }
+
+    if (additionalInstructions) {
+      runOptions.additional_instructions = additionalInstructions
+    }
+
+    const stream = await openai.beta.threads.runs.stream(currentThreadId, runOptions)
+
+    // Handle stream events
+    stream.on('textDelta', (textDelta) => {
+      // Send each text delta to the client
+      res.write(`data: ${JSON.stringify({ type: 'delta', text: textDelta.value })}\n\n`)
+    })
+
+    stream.on('textDone', () => {
+      // Signal completion
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+    })
+
+    stream.on('error', (error) => {
+      console.error('Stream error:', error)
+      res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`)
+      res.end()
+    })
+
+    stream.on('end', () => {
+      res.end()
+    })
+
+  } catch (error) {
+    console.error('OpenAI assistant streaming error:', error)
+    res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`)
+    res.end()
   }
 })
 

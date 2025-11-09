@@ -35,7 +35,9 @@
   bottom: 0;
   right: 0;
   width: calc(50% - 1px); /* Take right half of screen (minus divider) */
-  height: 40vh; /* 40% of viewport height for lower portion */
+  /* Calculate height: 100vh - header (~95px) - ResourceLinks (~70px) - gap (15px) */
+  height: calc(100vh - 180px);
+  max-height: calc(100vh - 180px);
   background: white;
   border-top-left-radius: 12px;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);

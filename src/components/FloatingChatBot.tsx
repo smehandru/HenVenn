@@ -14,17 +14,38 @@ const formatMessageText = (text: string): JSX.Element[] => {
   const paragraphs = text.split(/\n\n+/)
 
   return paragraphs.map((para, idx) => {
-    // Process inline formatting (bold text with **)
-    const parts = para.split(/(\*\*.*?\*\*)/)
-    const formatted = parts.map((part, partIdx) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        // Bold text
-        return <strong key={partIdx}>{part.slice(2, -2)}</strong>
-      }
-      return part
+    // Check if paragraph starts with a number followed by dot (e.g., "1. ", "2. ")
+    // or bullet point (e.g., "- ", "* ")
+    const isListItem = /^(\d+\.|[-*])\s/.test(para.trim())
+
+    // Split single newlines within paragraph
+    const lines = para.split('\n')
+
+    const content = lines.map((line, lineIdx) => {
+      // Process inline formatting (bold text with **)
+      const parts = line.split(/(\*\*.*?\*\*)/)
+      const formatted = parts.map((part, partIdx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          // Bold text
+          return <strong key={partIdx}>{part.slice(2, -2)}</strong>
+        }
+        return part
+      })
+
+      return (
+        <span key={lineIdx}>
+          {formatted}
+          {lineIdx < lines.length - 1 && <br />}
+        </span>
+      )
     })
 
-    return <p key={idx}>{formatted}</p>
+    // Add extra class for list items for better spacing
+    return (
+      <p key={idx} className={isListItem ? 'list-item' : ''}>
+        {content}
+      </p>
+    )
   })
 }
 

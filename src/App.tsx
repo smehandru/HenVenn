@@ -133,12 +133,34 @@ function App() {
 
     let accumulatedText = ''
 
+    // Build referral context if referrals are available
+    let referralContext = ''
+    if (referrals.length > 0) {
+      referralContext = referrals.map((ref, idx) => {
+        return `Henvisning ${idx + 1} (${ref.referralNumber}):
+Oppsummering: ${ref.assessment?.keySummary || 'Ikke vurdert ennå'}
+Tentativ diagnose: ${ref.assessment?.tentativeDiagnosis || 'Ukjent'}
+Prioritetsgruppe: ${ref.assessment?.priorityGroup || 'Ikke vurdert'}
+${ref.assessment?.recommendedDeadline ? `Anbefalt frist: ${ref.assessment.recommendedDeadline.deadline}` : ''}
+
+Fullstendig tekst:
+${ref.fullText.substring(0, 500)}...
+---`
+      }).join('\n\n')
+    }
+
     try {
       await chatService.sendMessageStreaming(
         message,
         // onChunk - called for each text chunk
-        (chunk: string) => {
-          accumulatedText += chunk
+        (chunk: string, shouldReplace?: boolean) => {
+          if (shouldReplace) {
+            // Replace entire text (used for citation cleaning)
+            accumulatedText = chunk
+          } else {
+            // Append chunk
+            accumulatedText += chunk
+          }
           setChatMessages(prev =>
             prev.map(msg =>
               msg.id === aiMessageId ? { ...msg, text: accumulatedText } : msg
@@ -163,7 +185,9 @@ function App() {
             )
           )
           setIsChatLoading(false)
-        }
+        },
+        // referralContext - pass referral information for context
+        referralContext || undefined
       )
     } catch (error) {
       console.error('Chat error:', error)

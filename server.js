@@ -136,7 +136,7 @@ app.post('/api/openai/assistant', async (req, res) => {
 // OpenAI Assistant endpoint with Server-Sent Events streaming
 app.post('/api/openai/assistant/stream', async (req, res) => {
   try {
-    const { message, assistantId, threadId, additionalInstructions } = req.body
+    const { message, assistantId, threadId, additionalInstructions, referralContext } = req.body
 
     const openai = getOpenAIClient()
     if (!openai) {
@@ -161,10 +161,20 @@ app.post('/api/openai/assistant/stream', async (req, res) => {
       res.write(`data: ${JSON.stringify({ type: 'threadId', threadId: currentThreadId })}\n\n`)
     }
 
+    // Build message with referral context if provided
+    let messageContent = message
+    if (referralContext) {
+      messageContent = `KONTEKST - Opplastede henvisninger:
+${referralContext}
+
+BRUKERS SPØRSMÅL:
+${message}`
+    }
+
     // Add message to thread
     await openai.beta.threads.messages.create(currentThreadId, {
       role: 'user',
-      content: message
+      content: messageContent
     })
 
     // Create run with streaming
@@ -178,13 +188,30 @@ app.post('/api/openai/assistant/stream', async (req, res) => {
 
     const stream = await openai.beta.threads.runs.stream(currentThreadId, runOptions)
 
+    // Accumulate text to clean citations at the end
+    let accumulatedText = ''
+
     // Handle stream events
     stream.on('textDelta', (textDelta) => {
+      // Accumulate text for citation cleaning
+      accumulatedText += textDelta.value
       // Send each text delta to the client
       res.write(`data: ${JSON.stringify({ type: 'delta', text: textDelta.value })}\n\n`)
     })
 
     stream.on('textDone', () => {
+      // Clean citations from accumulated text and send cleaned version
+      let cleanedText = accumulatedText
+      cleanedText = cleanedText.replace(/【[^】]*†metodebok\.pdf】/g, '(metodebok)')
+      cleanedText = cleanedText.replace(/【[^】]*†prioriteringsveileder[^】]*】/g, '(prioriteringsveileder)')
+      cleanedText = cleanedText.replace(/【[^】]*】/g, '') // Remove any other citations
+
+      // If text was cleaned, send a correction delta
+      if (cleanedText !== accumulatedText) {
+        // Send signal to replace entire message
+        res.write(`data: ${JSON.stringify({ type: 'replace', text: cleanedText })}\n\n`)
+      }
+
       // Signal completion
       res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
     })

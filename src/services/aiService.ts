@@ -443,7 +443,13 @@ Svar KUN med valid JSON, ingen annen tekst.`
         throw new Error('Ugyldig svarformat fra OpenAI Assistant')
       }
 
-      return textContent.text.value
+      // Remove OpenAI citation markers like 【4:1†metodebok.pdf】 and replace with "metodebok"
+      let responseText = textContent.text.value
+      responseText = responseText.replace(/【[^】]*†metodebok\.pdf】/g, '(metodebok)')
+      responseText = responseText.replace(/【[^】]*†prioriteringsveileder[^】]*】/g, '(prioriteringsveileder)')
+      responseText = responseText.replace(/【[^】]*】/g, '') // Remove any other citations
+
+      return responseText
     } catch (error: any) {
       console.error('OpenAI Assistant error:', error)
       throw new Error(`OpenAI Assistant feil: ${error.message}`)

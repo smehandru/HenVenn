@@ -112,7 +112,13 @@ VIKTIG INSTRUKS FOR DETTE SPØRSMÅLET:
         throw new Error('No text content in assistant response')
       }
 
-      return textContent.text.value
+      // Remove OpenAI citation markers like 【4:1†metodebok.pdf】 and replace with "metodebok"
+      let responseText = textContent.text.value
+      responseText = responseText.replace(/【[^】]*†metodebok\.pdf】/g, '(metodebok)')
+      responseText = responseText.replace(/【[^】]*†prioriteringsveileder[^】]*】/g, '(prioriteringsveileder)')
+      responseText = responseText.replace(/【[^】]*】/g, '') // Remove any other citations
+
+      return responseText
     } catch (error: any) {
       console.error('Chat service error:', error)
       throw new Error(`Kunne ikke få svar fra assistenten: ${error.message}`)
@@ -122,15 +128,17 @@ VIKTIG INSTRUKS FOR DETTE SPØRSMÅLET:
   /**
    * Send a message with streaming response (word-by-word like ChatGPT)
    * @param message The user's message
-   * @param onChunk Callback for each text chunk received
+   * @param onChunk Callback for each text chunk received (text, shouldReplace?)
    * @param onComplete Callback when streaming is complete
    * @param onError Callback for errors
+   * @param referralContext Optional context about uploaded referrals
    */
   async sendMessageStreaming(
     message: string,
-    onChunk: (text: string) => void,
+    onChunk: (text: string, shouldReplace?: boolean) => void,
     onComplete: () => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    referralContext?: string
   ): Promise<void> {
     try {
       if (!this.useBackend) {
@@ -170,7 +178,8 @@ VIKTIG INSTRUKS FOR DETTE SPØRSMÅLET:
           message: conversationalMessage,
           assistantId: this.assistantId,
           threadId: this.threadId,
-          additionalInstructions
+          additionalInstructions,
+          referralContext
         })
       })
 
@@ -209,6 +218,9 @@ VIKTIG INSTRUKS FOR DETTE SPØRSMÅLET:
                 this.threadId = data.threadId
               } else if (data.type === 'delta') {
                 onChunk(data.text)
+              } else if (data.type === 'replace') {
+                // Replace entire message with cleaned text (remove citations)
+                onChunk(data.text, true) // true indicates this should replace, not append
               } else if (data.type === 'done') {
                 onComplete()
               } else if (data.type === 'error') {

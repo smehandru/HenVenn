@@ -3,8 +3,9 @@
   padding: 20px;
   border-bottom: 2px solid #ddd;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  position: relative;
 }
 
 .logo {
@@ -41,8 +42,10 @@
   letter-spacing: 0.3px;
 }
 
-/* Header buttons container */
+/* Header buttons container - positioned absolutely on right */
 .header-buttons {
+  position: absolute;
+  right: 20px;
   display: flex;
   gap: 12px;
   align-items: center;

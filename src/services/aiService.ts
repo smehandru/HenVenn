@@ -264,7 +264,7 @@ VIKTIGE REGLER:
 3. rejection: IKKE inkluder "reason" feltet. Bruk wrongSpecialty, correctSpecialty, missingInformation og expectedPrimaryCareActions.
 4. wrongSpecialty: Hvis problemstillingen tilhører et annet fagfelt (nevrologi, indremedisin, revmatologi, etc.), sett dette til true og spesifiser correctSpecialty.
 
-KRITERIER FOR AVSLAG:
+KRITERIER FOR AVSLAG (VÆR STRENG - DU MÅ AVVISE VAGE HENVISNINGER):
 Avvis henvisning (priorityGroup: "rejected") når:
 1. FEIL FAGFELT: Problemstillingen tilhører et annet fagfelt enn ortopedi/kirurgi
    - Nevrologiske tilstander (f.eks. perifer neuropati, CNS-lidelser, nevrodegenerative sykdommer)
@@ -272,22 +272,47 @@ Avvis henvisning (priorityGroup: "rejected") når:
    - Indremedisinske tilstander (f.eks. kardiovaskulære, metabolske)
    - Hudlidelser uten ortopedisk komponent
    → Sett wrongSpecialty=true og correctSpecialty="[fagfelt]"
-2. Kan håndteres i primærhelsetjenesten - ikke behov for spesialistkompetanse
-3. Manglende utredning: Ingen/utilstrekkelig bildediagnostikk, mangler klinisk undersøkelse, ingen sykehistorie dokumentert
-4. Utilstrekkelig informasjon: Uklare symptombeskrivelser, mangler viktige opplysninger for triagering
-5. Ingen klar indikasjon: Konservativ behandling ikke forsøkt (fysioterapi, NSAID), stabile/ukompliserte symptomer uten progresjon, ingen røde flagg
 
-KRITERIER FOR PRIORITERING:
+2. UTILSTREKKELIG INFORMASJON (VIKTIG - AVVIS VAGE HENVISNINGER):
+   - Mangler pasientinformasjon (alder, kjønn)
+   - Mangler spesifikk symptomdeskrivelse (kun "smerter" eller "vondt" uten detaljer)
+   - Mangler varighet av symptomer
+   - Mangler klinisk undersøkelse/funn
+   - Vage beskrivelser som "prøvd alt" uten å spesifisere hva
+   - Mangler funksjonsnivå (hva pasienten ikke kan gjøre)
+   EKSEMPEL PÅ AVVISNING: "Smerter i kne, prøvd alt" → AVVIS (for vagt, mangler konkret info)
+
+3. Manglende utredning:
+   - Ingen/utilstrekkelig bildediagnostikk (røntgen/MR)
+   - Ingen sykehistorie dokumentert
+   - Mangler laboratorieprøver ved mistanke om infeksjon/inflammasjon
+
+4. Kan håndteres i primærhelsetjenesten - ikke behov for spesialistkompetanse
+   - Akutt overbelastning/muskelskade uten objektive funn
+   - Milde symptomer uten funksjonshemming
+   - Ikke forsøkt konservativ behandling (fysioterapi, NSAID)
+
+5. Ingen klar indikasjon for spesialistvurdering:
+   - Stabile/ukompliserte symptomer uten progresjon
+   - Ingen røde flagg
+   - Konservativ behandling ikke forsøkt eller for kort tid
+
+VIKTIG: Hvis henvisningen er vag og mangler grunnleggende informasjon → ALLTID AVVIS.
+Eksempel: "Smerter i kne, vet ikke hva vi skal gjøre" → AVVIS (mangler alder, kjønn, klinisk undersøkelse, bildediagnostikk, varighet, forsøkt behandling)
+
+KRITERIER FOR PRIORITERING (kun for henvisninger som IKKE skal avvises):
 - red (≤4 uker): Akutte tilstander, betydelige nevrologiske utfall, progredierende symptomer, røde flagg
 - orange (5-12 uker): Betydelige symptomer, ikke respondert på konservativ behandling, moderat funksjonshemming
 - green (>12 uker): Elektive tilstander, stabile symptomer, lav funksjonshemming
 
-Vurder alltid:
-- Er det røde flagg?
-- Er det gjort tilstrekkelig utredning i primærhelsetjenesten?
-- Er det forsøkt relevant konservativ behandling?
-- Er det tydelig indikasjon for spesialistvurdering?
-- Hva mangler eventuelt for å kunne vurdere henvisningen?
+Vurder alltid FØRST om henvisningen skal AVVISES:
+- Er pasientinformasjon tilstede (alder, kjønn)?
+- Er symptomene konkret beskrevet?
+- Er det gjort klinisk undersøkelse med objektive funn?
+- Er det gjort bildediagnostikk?
+- Er varighet dokumentert?
+- Er forsøkt behandling dokumentert?
+HVIS NEI TIL FLERE AV DISSE → AVVIS HENVISNINGEN
 
 Svar KUN med valid JSON, ingen annen tekst.`
   }

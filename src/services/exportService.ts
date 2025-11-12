@@ -29,17 +29,25 @@ export function exportToCSV(referrals: Referral[]): void {
     'Differensialdiagnoser'
   ]
 
-  const rows = referrals.map(ref => [
-    ref.referralNumber.toString(),
-    ref.patientInfo.name,
-    ref.patientInfo.age.toString(),
-    ref.patientInfo.gender,
-    getPriorityGroupText(ref.assessment?.priorityGroup || 'green'),
-    ref.assessment?.tentativeDiagnosis || '',
-    ref.assessment?.recommendedDeadline || '',
-    `"${ref.assessment?.keySummary || ''}"`,
-    `"${ref.assessment?.differentialDiagnoses?.join(', ') || ''}"`
-  ])
+  const rows = referrals.map(ref => {
+    // Extract deadlines from guidelineDescription if available
+    let deadlineText = ''
+    if (ref.assessment?.guidelineDescription?.conditions && ref.assessment.guidelineDescription.conditions.length > 0) {
+      deadlineText = ref.assessment.guidelineDescription.conditions[0].deadlines.join('; ')
+    }
+
+    return [
+      ref.referralNumber.toString(),
+      ref.patientInfo.name,
+      ref.patientInfo.age.toString(),
+      ref.patientInfo.gender,
+      getPriorityGroupText(ref.assessment?.priorityGroup || 'green'),
+      ref.assessment?.tentativeDiagnosis || '',
+      deadlineText,
+      `"${ref.assessment?.keySummary || ''}"`,
+      `"${ref.assessment?.differentialDiagnoses?.join(', ') || ''}"`
+    ]
+  })
 
   const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
 
@@ -93,26 +101,32 @@ function generateSummaryReport(referrals: Referral[]): string {
       report += `Pasient: ${ref.patientInfo.name}, ${ref.patientInfo.age} år (${ref.patientInfo.gender})\n`
       report += `Diagnose: ${ref.assessment?.tentativeDiagnosis}\n`
 
-      if (ref.assessment?.recommendedDeadline) {
-        report += `Inntaksfrist: ${ref.assessment.recommendedDeadline.deadline}\n`
-        report += `Begrunnelse: ${ref.assessment.recommendedDeadline.reasoning}\n`
-        if (ref.assessment.recommendedDeadline.guidelineReference) {
-          report += `Referanse: ${ref.assessment.recommendedDeadline.guidelineReference}\n`
-        }
+      if (ref.assessment?.guidelineDescription?.conditions) {
+        report += `\nOmtale i prioriteringsveileder:\n`
+        ref.assessment.guidelineDescription.conditions.forEach((condition, idx) => {
+          report += `  ${idx + 1}. ${condition.icon} ${condition.name}\n`
+          report += `     Kilde: ${condition.source}\n`
+          condition.deadlines.forEach(deadline => {
+            report += `     ${deadline}\n`
+          })
+          report += `     Rett til nødvendig helsehjelp: ${condition.rightToHealthcare ? 'Ja' : 'Nei'}\n`
+          if (condition.comment) {
+            report += `     Kommentar: ${condition.comment}\n`
+          }
+        })
       }
 
       if (ref.assessment?.rejection) {
-        report += `\nAvvisning:\n`
-        report += `Årsak: ${ref.assessment.rejection.reason}\n`
+        report += `\nVurderes avvist:\n`
         if (ref.assessment.rejection.missingInformation.length > 0) {
           report += `Manglende informasjon:\n`
           ref.assessment.rejection.missingInformation.forEach(info => {
             report += `  - ${info}\n`
           })
         }
-        if (ref.assessment.rejection.primaryCareActions.length > 0) {
-          report += `Anbefalte tiltak i primærhelsetjenesten:\n`
-          ref.assessment.rejection.primaryCareActions.forEach(action => {
+        if (ref.assessment.rejection.expectedPrimaryCareActions && ref.assessment.rejection.expectedPrimaryCareActions.length > 0) {
+          report += `Forventet tiltak i primærhelsetjenesten:\n`
+          ref.assessment.rejection.expectedPrimaryCareActions.forEach(action => {
             report += `  - ${action}\n`
           })
         }

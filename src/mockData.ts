@@ -45,10 +45,15 @@ Dr. Hansen`,
         'Kombinert ligamentskade (MCL + korsbånd)',
         'Leddbruskkade'
       ],
-      recommendedDeadline: {
-        deadline: 'Innen 2 uker',
-        reasoning: 'Akutt ligamentskade med betydelig funksjonsnedsettelse krever tidlig MR-diagnostikk og behandlingsplanlegging for å unngå komplikasjoner og sikre optimal funksjon.',
-        guidelineReference: 'Side 23 i prioriteringsveilederen - akutte ligamentskader'
+      guidelineDescription: {
+        conditions: [{
+          icon: '🦵',
+          name: 'Akutt ligamentskade i kne',
+          source: 'Kap. 2.15 Akutte traumatiske skader',
+          deadlines: ['Veiledende frist: 2 uker'],
+          rightToHealthcare: true,
+          comment: 'Akutte ligamentskader med betydelig funksjonsnedsettelse krever tidlig MR-diagnostikk og behandlingsplanlegging for å unngå komplikasjoner.'
+        }]
       },
       priorityGroup: 'red'
     }
@@ -96,10 +101,15 @@ Dr. Olsen`,
         'Fullstendig rotatorcuff-ruptur',
         'Subakromialt impingement'
       ],
-      recommendedDeadline: {
-        deadline: 'Innen 8 uker',
-        reasoning: 'Betydelige smerter med nattsmerter og manglende respons på 4 måneders konservativ behandling indikerer behov for MR-vurdering og vurdering av behandlingsalternativer inkludert operasjon.',
-        guidelineReference: 'Side 45 i prioriteringsveilederen - rotatorcuff-patologi'
+      guidelineDescription: {
+        conditions: [{
+          icon: '🦵',
+          name: 'Rotatorcuff-ruptur (skulder)',
+          source: 'Kap. 2.22 Rotatorcuff skade',
+          deadlines: ['Degenerativ ruptur: Veiledende frist 26 uker', 'Med betydelige symptomer: 8-12 uker'],
+          rightToHealthcare: true,
+          comment: 'Ikke respondert på konservativ behandling. Nattsmerter og funksjonsnedsettelse indikerer behov for raskere vurdering enn standard degenerativ ruptur.'
+        }]
       },
       priorityGroup: 'orange'
     }
@@ -148,10 +158,15 @@ Dr. Berg`,
         'Labrum-skade',
         'Lumbal radikulopati'
       ],
-      recommendedDeadline: {
-        deadline: 'Innen 16 uker',
-        reasoning: 'Bilateral coxartrose med stabil symptomatikk. Elektiv vurdering for hofteprotese basert på funksjonsnivå og livskvalitet.',
-        guidelineReference: 'Side 67 i prioriteringsveilederen - elektiv hoftekirurgi'
+      guidelineDescription: {
+        conditions: [{
+          icon: '🦴',
+          name: 'Hofteleddsartrose',
+          source: 'Kap. 2.13 Artrose (hofteledd)',
+          deadlines: ['Elektive tilfeller: Veiledende frist 26 uker'],
+          rightToHealthcare: true,
+          comment: 'Bilateral coxartrose med stabil symptomatikk. Elektiv vurdering for hofteprotese basert på funksjonsnivå og livskvalitet.'
+        }]
       },
       priorityGroup: 'green'
     }
@@ -202,13 +217,12 @@ Dr. Nilsen`,
       ],
       priorityGroup: 'rejected',
       rejection: {
-        reason: 'Tilstanden kan håndteres i primærhelsetjenesten. Ingen objektive funn som indikerer behov for spesialistvurdering på nåværende tidspunkt.',
         missingInformation: [
           'Mangler beskrivelse av forsøkt konservativ behandling',
           'Ingen dokumentasjon på fysioterapibehandling',
           'Mangler beskrivelse av funksjonsnivå og aktivitetsbegrensning'
         ],
-        primaryCareActions: [
+        expectedPrimaryCareActions: [
           'Fysioterapi med fokus på styrketrening av quadriceps og baklår i 8-12 uker',
           'Treningsopptrapping med gradvis økning av belastning',
           'Prøv NSAID-behandling ved behov for smertelindring',
@@ -260,14 +274,13 @@ Dr. Andersen`,
       ],
       priorityGroup: 'rejected',
       rejection: {
-        reason: 'Utilstrekkelig utredning i primærhelsetjenesten. Manglende bildediagnostikk og dokumentasjon på konservativ behandling.',
         missingInformation: [
           'Mangler røntgen av ankel (bør vært tatt ved initial skade)',
           'Ingen beskrivelse av behandlingsforsøk som er gjort',
           'Mangler informasjon om funksjonsnivå og aktivitetsbegrensning',
           'Ingen dokumentasjon på fysioterapibehandling'
         ],
-        primaryCareActions: [
+        expectedPrimaryCareActions: [
           'Ta røntgen av ankel for å utelukke benskade',
           'Start fysioterapi med fokus på proprioseptiv trening og styrking i minimum 6-8 uker',
           'Vurder bruk av ankelstøtte/orthose ved aktivitet',
@@ -320,10 +333,15 @@ Dr. Bakke`,
         'Thoracic outlet syndrome',
         'Perifer nerveskade (n. radialis)'
       ],
-      recommendedDeadline: {
-        deadline: 'Innen 2 uker',
-        reasoning: 'Progressive nevrologiske utfall med parese og nummenhet. MR viser betydelig diskusprolaps med nerverotkompresjon. Raskt behov for vurdering av kirurgisk dekompresjon for å forhindre permanent nerveskade.',
-        guidelineReference: 'Side 18 i prioriteringsveilederen - cervikal radikulopati med nevrologiske utfall'
+      guidelineDescription: {
+        conditions: [{
+          icon: '🦴',
+          name: 'Cervikal radikulopati med nevrologiske utfall',
+          source: 'Kap. 2.8 Cervikal radikulopati',
+          deadlines: ['Veiledende frist: 2 uker ved progressive nevrologiske utfall'],
+          rightToHealthcare: true,
+          comment: 'Progressive nevrologiske utfall med parese og nummenhet. MR viser betydelig diskusprolaps med nerverotkompresjon. Raskt behov for vurdering av kirurgisk dekompresjon for å forhindre permanent nerveskade.'
+        }]
       },
       priorityGroup: 'red'
     }
@@ -370,10 +388,15 @@ Dr. Lund`,
         'Lateral ligamentskade',
         'Osteoartritt i albue'
       ],
-      recommendedDeadline: {
-        deadline: 'Innen 10 uker',
-        reasoning: 'Kronisk lateral epikondylitt med manglende respons på 2 måneders fysioterapi. Arbeidsrelatert belastning indikerer behov for vurdering av infiltrasjon (kortison/PRP) eller eventuelt kirurgisk behandling.',
-        guidelineReference: 'Side 52 i prioriteringsveilederen - kroniske seneskader'
+      guidelineDescription: {
+        conditions: [{
+          icon: '🦵',
+          name: 'Lateral epikondylitt (tennisalbue)',
+          source: 'Kap. 2.25 Kroniske seneskader',
+          deadlines: ['Veiledende frist: 8-12 uker ved manglende respons på konservativ behandling'],
+          rightToHealthcare: true,
+          comment: 'Kronisk lateral epikondylitt med manglende respons på 2 måneders fysioterapi. Arbeidsrelatert belastning indikerer behov for vurdering av infiltrasjon (kortison/PRP) eller eventuelt kirurgisk behandling.'
+        }]
       },
       priorityGroup: 'orange'
     }

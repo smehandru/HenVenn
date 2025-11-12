@@ -1,6 +1,11 @@
 import './Header.css'
 
-const Header = () => {
+interface HeaderProps {
+  onDemoClick?: () => void
+  onSurveyClick?: () => void
+}
+
+const Header = ({ onDemoClick, onSurveyClick }: HeaderProps) => {
   return (
     <header className="header">
       <div className="logo">
@@ -102,6 +107,14 @@ const Header = () => {
           <span className="logo-text">HenVenn</span>
           <span className="logo-subtitle">- Klinisk beslutningsstøtte for henvisningsarbeid</span>
         </div>
+      </div>
+      <div className="header-buttons">
+        <button className="header-demo-button" onClick={onDemoClick}>
+          🎯 DEMO
+        </button>
+        <button className="header-survey-button" onClick={onSurveyClick}>
+          📊 Spørreskjema
+        </button>
       </div>
     </header>
   )

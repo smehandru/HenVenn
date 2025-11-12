@@ -7,13 +7,12 @@ interface RightPanelProps {
   onFileUpload: (file: File) => void
   hasUploadedFile: boolean
   isProcessing?: boolean
-  onDemoClick?: () => void
 }
 
-const RightPanel = ({ selectedReferral, onFileUpload, hasUploadedFile, isProcessing = false, onDemoClick }: RightPanelProps) => {
+const RightPanel = ({ selectedReferral, onFileUpload, hasUploadedFile, isProcessing = false }: RightPanelProps) => {
   return (
     <div className="right-panel">
-      <ResourceLinks onFileUpload={onFileUpload} disabled={isProcessing} onDemoClick={onDemoClick} />
+      <ResourceLinks onFileUpload={onFileUpload} disabled={isProcessing} />
       <div className="scrollable-content">
         {!hasUploadedFile ? (
           <div className="initial-instruction">

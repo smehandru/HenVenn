@@ -360,9 +360,14 @@ Brevet skal:
     setIsChatOpen(!isChatOpen)
   }
 
+  const handleSurveyClick = () => {
+    // TODO: Replace with actual survey URL when available
+    window.open('https://forms.office.com/placeholder', '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="app">
-      <Header />
+      <Header onDemoClick={handleDemoClick} onSurveyClick={handleSurveyClick} />
       {isProcessing && (
         <div className="processing-overlay">
           <div className="processing-message">
@@ -384,7 +389,6 @@ Brevet skal:
           onFileUpload={handleFileUpload}
           hasUploadedFile={!!uploadedFile}
           isProcessing={isProcessing}
-          onDemoClick={handleDemoClick}
         />
       </div>
       <FloatingChatBot

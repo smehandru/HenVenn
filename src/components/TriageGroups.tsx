@@ -6,6 +6,7 @@ interface TriageGroupsProps {
   referrals: Referral[]
   onReferralSelect: (referral: Referral) => void
   selectedReferralId?: string
+  onRequestRejectionLetter?: (referral: Referral) => void
 }
 
 interface GroupConfig {
@@ -42,7 +43,7 @@ const groupConfigs: GroupConfig[] = [
   }
 ]
 
-const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId }: TriageGroupsProps) => {
+const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId, onRequestRejectionLetter }: TriageGroupsProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<PriorityGroup>>(new Set())
   const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
 
@@ -147,11 +148,6 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId }: Triag
 
                             {config.key === 'rejected' && referral.assessment.rejection ? (
                               <>
-                                <div className="detail-section">
-                                  <h4>Årsak til avvisning</h4>
-                                  <p>{referral.assessment.rejection.reason}</p>
-                                </div>
-
                                 {referral.assessment.rejection.missingInformation.length > 0 && (
                                   <div className="detail-section">
                                     <h4>Manglende informasjon</h4>
@@ -163,28 +159,47 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId }: Triag
                                   </div>
                                 )}
 
-                                {referral.assessment.rejection.primaryCareActions.length > 0 && (
+                                {referral.assessment.rejection.expectedPrimaryCareActions.length > 0 && (
                                   <div className="detail-section">
-                                    <h4>Anbefalte tiltak i primærhelsetjenesten</h4>
+                                    <h4>Forventet tiltak i primærhelsetjenesten</h4>
                                     <ul>
-                                      {referral.assessment.rejection.primaryCareActions.map((action, idx) => (
+                                      {referral.assessment.rejection.expectedPrimaryCareActions.map((action, idx) => (
                                         <li key={idx}>{action}</li>
                                       ))}
                                     </ul>
                                   </div>
                                 )}
-                              </>
-                            ) : referral.assessment.recommendedDeadline ? (
-                              <>
+
                                 <div className="detail-section">
-                                  <h4>Anbefalt inntaksfrist</h4>
-                                  <p><strong>{referral.assessment.recommendedDeadline.deadline}</strong></p>
-                                  <p className="reasoning">{referral.assessment.recommendedDeadline.reasoning}</p>
-                                  {referral.assessment.recommendedDeadline.guidelineReference && (
-                                    <p className="guideline-ref">
-                                      <em>Ref: {referral.assessment.recommendedDeadline.guidelineReference}</em>
-                                    </p>
-                                  )}
+                                  <button
+                                    className="rejection-letter-button"
+                                    onClick={() => onRequestRejectionLetter?.(referral)}
+                                  >
+                                    Forslag til avslagsbrev
+                                  </button>
+                                </div>
+                              </>
+                            ) : referral.assessment.guidelineDescription ? (
+                              <>
+                                <div className="detail-section guideline-section">
+                                  <h4>Omtale i prioriteringsveileder</h4>
+                                  {referral.assessment.guidelineDescription.conditions.map((condition, idx) => (
+                                    <div key={idx} className="condition-item">
+                                      <p className="condition-name">
+                                        {condition.icon} <strong>{idx + 1}. {condition.name}</strong>
+                                      </p>
+                                      <p className="condition-source">📖 Kilde: {condition.source}</p>
+                                      {condition.deadlines.map((deadline, dIdx) => (
+                                        <p key={dIdx} className="condition-deadline">{deadline}</p>
+                                      ))}
+                                      <p className="condition-healthcare">
+                                        Rett til nødvendig helsehjelp: {condition.rightToHealthcare ? 'Ja' : 'Nei'}
+                                      </p>
+                                      {condition.comment && (
+                                        <p className="condition-comment"><strong>Kommentar:</strong> {condition.comment}</p>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
                               </>
                             ) : null}

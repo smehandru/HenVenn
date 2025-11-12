@@ -17,16 +17,21 @@ export interface ReferralAssessment {
   keySummary: string;
   tentativeDiagnosis: string;
   differentialDiagnoses?: string[]; // Optional - bare hvis relevant
-  recommendedDeadline?: {
-    deadline: string; // F.eks. "4 uker"
-    reasoning: string; // Forklaring av hvorfor
-    guidelineReference?: string; // F.eks. "Side 12 i prioriteringsveilederen"
+  guidelineDescription?: {
+    // Omtale i prioriteringsveileder for aksepterte henvisninger
+    conditions: Array<{
+      icon: string; // Emoji som 🦵, 🦶, 🦴, etc.
+      name: string; // F.eks. "Rotatorcuff-ruptur (skulder)"
+      source: string; // F.eks. "Kap. 2.22 Rotatorcuff skade"
+      deadlines: string[]; // F.eks. ["Traumatisk ruptur: Veiledende frist 12 uker"]
+      rightToHealthcare: boolean; // Rett til nødvendig helsehjelp
+      comment?: string; // Valgfri kommentar
+    }>;
   };
   priorityGroup: 'red' | 'orange' | 'green' | 'rejected';
   rejection?: {
-    reason: string; // Hvorfor henvisningen avvises
     missingInformation: string[]; // Hva som mangler
-    primaryCareActions: string[]; // Tiltak i primærhelsetjenesten
+    expectedPrimaryCareActions: string[]; // Forventet tiltak i primærhelsetjenesten (tidligere primaryCareActions)
   };
 }
 

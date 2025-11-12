@@ -19,6 +19,7 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingProgress, setProcessingProgress] = useState<string>('')
   const [useMockData, setUseMockData] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
 
   // Initialize chat service for the floating chatbot
   const chatService = createChatService()
@@ -137,15 +138,17 @@ function App() {
     let referralContext = ''
     if (referrals.length > 0) {
       referralContext = referrals.map((ref, idx) => {
-        return `Henvisning ${idx + 1} (${ref.referralNumber}):
+        let contextStr = `Henvisning ${idx + 1} (${ref.referralNumber}):
 Oppsummering: ${ref.assessment?.keySummary || 'Ikke vurdert ennå'}
 Tentativ diagnose: ${ref.assessment?.tentativeDiagnosis || 'Ukjent'}
-Prioritetsgruppe: ${ref.assessment?.priorityGroup || 'Ikke vurdert'}
-${ref.assessment?.recommendedDeadline ? `Anbefalt frist: ${ref.assessment.recommendedDeadline.deadline}` : ''}
+Prioritetsgruppe: ${ref.assessment?.priorityGroup || 'Ikke vurdert'}`
 
-Fullstendig tekst:
-${ref.fullText.substring(0, 500)}...
----`
+        if (ref.assessment?.guidelineDescription) {
+          contextStr += `\nOmtale i prioriteringsveileder: ${ref.assessment.guidelineDescription.conditions.map(c => c.name).join(', ')}`
+        }
+
+        contextStr += `\n\nFullstendig tekst:\n${ref.fullText.substring(0, 500)}...\n---`
+        return contextStr
       }).join('\n\n')
     }
 
@@ -208,6 +211,42 @@ ${ref.fullText.substring(0, 500)}...
     }
   }
 
+  const handleRequestRejectionLetter = (referral: Referral) => {
+    // Open chatbot
+    setIsChatOpen(true)
+
+    // Prepare the message
+    const message = `Skriv et forslag til avslagsbrev for Henvisning #${referral.referralNumber}.
+
+Bruk følgende informasjon:
+- Tentativ diagnose: ${referral.assessment?.tentativeDiagnosis || 'Ukjent'}
+- Nøkkeloppsummering: ${referral.assessment?.keySummary || 'Ingen oppsummering'}
+
+${referral.assessment?.rejection?.missingInformation && referral.assessment.rejection.missingInformation.length > 0
+  ? `Manglende informasjon:
+${referral.assessment.rejection.missingInformation.map(info => `- ${info}`).join('\n')}`
+  : ''}
+
+${referral.assessment?.rejection?.expectedPrimaryCareActions && referral.assessment.rejection.expectedPrimaryCareActions.length > 0
+  ? `Forventet tiltak i primærhelsetjenesten:
+${referral.assessment.rejection.expectedPrimaryCareActions.map(action => `- ${action}`).join('\n')}`
+  : ''}
+
+Brevet skal:
+1. Være høflig og profesjonelt
+2. Forklare hvorfor henvisningen ikke kan tas til følge for øyeblikket
+3. Liste opp hva som mangler
+4. Gi klare anbefalinger til fastlegen om tiltak som bør gjøres først
+5. Oppfordre til ny henvisning når anbefalte tiltak er gjennomført`
+
+    // Send the message
+    handleChatSend(message)
+  }
+
+  const toggleChat = () => {
+    setIsChatOpen(!isChatOpen)
+  }
+
   return (
     <div className="app">
       <Header />
@@ -224,6 +263,7 @@ ${ref.fullText.substring(0, 500)}...
           referrals={referrals}
           onReferralSelect={handleReferralSelect}
           selectedReferralId={selectedReferral?.id}
+          onRequestRejectionLetter={handleRequestRejectionLetter}
         />
         <div className="divider" />
         <RightPanel
@@ -237,6 +277,8 @@ ${ref.fullText.substring(0, 500)}...
         messages={chatMessages}
         onSend={handleChatSend}
         isLoading={isChatLoading}
+        isOpen={isChatOpen}
+        onToggle={toggleChat}
       />
     </div>
   )

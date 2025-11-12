@@ -6,12 +6,14 @@ interface LeftPanelProps {
   referrals: Referral[]
   onReferralSelect: (referral: Referral) => void
   selectedReferralId?: string
+  onRequestRejectionLetter?: (referral: Referral) => void
 }
 
 const LeftPanel = ({
   referrals,
   onReferralSelect,
-  selectedReferralId
+  selectedReferralId,
+  onRequestRejectionLetter
 }: LeftPanelProps) => {
   return (
     <div className="left-panel">
@@ -23,6 +25,7 @@ const LeftPanel = ({
           referrals={referrals}
           onReferralSelect={onReferralSelect}
           selectedReferralId={selectedReferralId}
+          onRequestRejectionLetter={onRequestRejectionLetter}
         />
         <div className="left-instruction">
           <p>Henvisninger skal her triageres etter anbefalt inntaksfrist</p>

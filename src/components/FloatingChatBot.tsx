@@ -6,6 +6,8 @@ interface FloatingChatBotProps {
   onSend: (message: string) => void
   messages: ChatMessage[]
   isLoading?: boolean
+  isOpen?: boolean
+  onToggle?: () => void
 }
 
 // Format AI response text with markdown-like formatting
@@ -49,10 +51,13 @@ const formatMessageText = (text: string): JSX.Element[] => {
   })
 }
 
-const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBotProps) => {
-  const [isOpen, setIsOpen] = useState(false)
+const FloatingChatBot = ({ onSend, messages, isLoading = false, isOpen: controlledIsOpen, onToggle }: FloatingChatBotProps) => {
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -77,7 +82,11 @@ const FloatingChatBot = ({ onSend, messages, isLoading = false }: FloatingChatBo
   }
 
   const toggleChat = () => {
-    setIsOpen(!isOpen)
+    if (onToggle) {
+      onToggle()
+    } else {
+      setInternalIsOpen(!internalIsOpen)
+    }
   }
 
   return (

@@ -227,10 +227,20 @@ For AKSEPTERTE henvisninger (red/orange/green):
   "keySummary": "Konsis oppsummering av nøkkelsymptomer og funn (2-3 setninger)",
   "tentativeDiagnosis": "Tentativ diagnose",
   "differentialDiagnoses": ["Diff.diagnose 1", "Diff.diagnose 2"],  // VALGFRITT - kun hvis relevant
-  "recommendedDeadline": {
-    "deadline": "4 uker",
-    "reasoning": "Detaljert forklaring av hvorfor denne fristen anbefales",
-    "guidelineReference": "Side X i prioriteringsveilederen"  // VALGFRITT - hvis relevant
+  "guidelineDescription": {
+    "conditions": [
+      {
+        "icon": "🦵",  // Bruk emoji: 🦵 (bein/skulder/arm), 🦶 (fot/ankel), 🦴 (generelt skjelett), 🏃 (bevegelse/sene)
+        "name": "Rotatorcuff-ruptur (skulder)",
+        "source": "Kap. 2.22 Rotatorcuff skade",
+        "deadlines": [
+          "Traumatisk ruptur: Veiledende frist 12 uker",
+          "Degenerativ ruptur: Veiledende frist 26 uker"
+        ],
+        "rightToHealthcare": true,
+        "comment": "Veilederen skiller eksplisitt mellom traumatiske og degenerative rupturer; traumatiske vurderes som alvorlige og skal håndteres raskere."
+      }
+    ]
   },
   "priorityGroup": "red|orange|green"
 }
@@ -241,22 +251,27 @@ For AVVISTE henvisninger (rejected):
   "tentativeDiagnosis": "Foreløpig vurdering",
   "priorityGroup": "rejected",
   "rejection": {
-    "reason": "Klar forklaring på hvorfor henvisningen avvises",
     "missingInformation": ["Mangler bildediagnostikk", "Ingen beskrivelse av konservativ behandling"],
-    "primaryCareActions": ["Prøv fysioterapi i 6-8 uker", "Ta røntgen av aktuelt område", "Prøv NSAID-behandling"]
+    "expectedPrimaryCareActions": ["Prøv fysioterapi i 6-8 uker", "Ta røntgen av aktuelt område", "Prøv NSAID-behandling"]
   }
 }
 
 VIKTIGE REGLER:
 1. differentialDiagnoses: Kun hvis det er klinisk relevant med flere diagnoser. Utelat feltet hvis diagnosen er klar.
-2. recommendedDeadline: Alltid inkluder detaljert begrunnelse. Referer til sidetal hvis mulig.
-3. rejection: Må være konstruktiv - si hva som mangler OG hva fastlegen kan gjøre.
+2. guidelineDescription: For aksepterte henvisninger - gi detaljert omtale fra prioriteringsveilederen med relevante kapitler, frister og kommentarer.
+3. rejection: IKKE inkluder "reason" feltet. Kun missingInformation og expectedPrimaryCareActions.
+
+KRITERIER FOR AVSLAG:
+Avvis henvisning (priorityGroup: "rejected") når:
+1. Kan håndteres i primærhelsetjenesten - ikke behov for spesialistkompetanse
+2. Manglende utredning: Ingen/utilstrekkelig bildediagnostikk, mangler klinisk undersøkelse, ingen sykehistorie dokumentert
+3. Utilstrekkelig informasjon: Uklare symptombeskrivelser, mangler viktige opplysninger for triagering
+4. Ingen klar indikasjon: Konservativ behandling ikke forsøkt (fysioterapi, NSAID), stabile/ukompliserte symptomer uten progresjon, ingen røde flagg
 
 KRITERIER FOR PRIORITERING:
 - red (≤4 uker): Akutte tilstander, betydelige nevrologiske utfall, progredierende symptomer, røde flagg
 - orange (5-12 uker): Betydelige symptomer, ikke respondert på konservativ behandling, moderat funksjonshemming
 - green (>12 uker): Elektive tilstander, stabile symptomer, lav funksjonshemming
-- rejected: Kan håndteres i primærhelsetjenesten, manglende utredning, utilstrekkelig informasjon, ingen klar indikasjon
 
 Vurder alltid:
 - Er det røde flagg?
@@ -480,37 +495,16 @@ Svar KUN med valid JSON, ingen annen tekst.`
         assessment.differentialDiagnoses = parsed.differentialDiagnoses
       }
 
-      // recommendedDeadline med ny struktur (for aksepterte henvisninger)
-      if (parsed.recommendedDeadline) {
-        if (typeof parsed.recommendedDeadline === 'string') {
-          // Gammel format - konverter til ny struktur
-          assessment.recommendedDeadline = {
-            deadline: parsed.recommendedDeadline,
-            reasoning: 'Se prioriteringsveileder for detaljer'
-          }
-        } else {
-          // Ny format - bruk direkte
-          assessment.recommendedDeadline = {
-            deadline: parsed.recommendedDeadline.deadline || '',
-            reasoning: parsed.recommendedDeadline.reasoning || '',
-            guidelineReference: parsed.recommendedDeadline.guidelineReference
-          }
-        }
+      // guidelineDescription (for aksepterte henvisninger)
+      if (parsed.guidelineDescription) {
+        assessment.guidelineDescription = parsed.guidelineDescription
       }
 
       // rejection objekt (for avviste henvisninger)
       if (parsed.rejection) {
         assessment.rejection = {
-          reason: parsed.rejection.reason || '',
           missingInformation: parsed.rejection.missingInformation || [],
-          primaryCareActions: parsed.rejection.primaryCareActions || []
-        }
-      } else if (parsed.rejectionReason) {
-        // Gammel format - konverter til ny struktur
-        assessment.rejection = {
-          reason: parsed.rejectionReason,
-          missingInformation: ['Se detaljer i begrunnelse'],
-          primaryCareActions: ['Kontakt spesialist for veiledning']
+          expectedPrimaryCareActions: parsed.rejection.expectedPrimaryCareActions || parsed.rejection.primaryCareActions || []
         }
       }
 
@@ -524,9 +518,15 @@ Svar KUN med valid JSON, ingen annen tekst.`
         keySummary: 'Kunne ikke analysere henvisningen automatisk.',
         tentativeDiagnosis: 'Ukjent',
         priorityGroup: 'green',
-        recommendedDeadline: {
-          deadline: 'Manuell vurdering nødvendig',
-          reasoning: 'AI-systemet kunne ikke prosessere responsen korrekt.'
+        guidelineDescription: {
+          conditions: [{
+            icon: '⚠️',
+            name: 'Manuell vurdering nødvendig',
+            source: 'AI-systemet kunne ikke prosessere responsen korrekt',
+            deadlines: ['Vurder manuelt'],
+            rightToHealthcare: false,
+            comment: 'Teknisk feil i AI-prosessering'
+          }]
         }
       }
     }

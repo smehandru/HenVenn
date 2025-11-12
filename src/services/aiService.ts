@@ -251,6 +251,8 @@ For AVVISTE henvisninger (rejected):
   "tentativeDiagnosis": "Foreløpig vurdering",
   "priorityGroup": "rejected",
   "rejection": {
+    "wrongSpecialty": false,  // Sett til true hvis henvisningen tilhører et annet fagfelt
+    "correctSpecialty": null,  // Hvis wrongSpecialty=true, angi riktig fagfelt (f.eks. "Nevrologi", "Revmatologi")
     "missingInformation": ["Mangler bildediagnostikk", "Ingen beskrivelse av konservativ behandling"],
     "expectedPrimaryCareActions": ["Prøv fysioterapi i 6-8 uker", "Ta røntgen av aktuelt område", "Prøv NSAID-behandling"]
   }
@@ -259,14 +261,21 @@ For AVVISTE henvisninger (rejected):
 VIKTIGE REGLER:
 1. differentialDiagnoses: Kun hvis det er klinisk relevant med flere diagnoser. Utelat feltet hvis diagnosen er klar.
 2. guidelineDescription: For aksepterte henvisninger - gi detaljert omtale fra prioriteringsveilederen med relevante kapitler, frister og kommentarer.
-3. rejection: IKKE inkluder "reason" feltet. Kun missingInformation og expectedPrimaryCareActions.
+3. rejection: IKKE inkluder "reason" feltet. Bruk wrongSpecialty, correctSpecialty, missingInformation og expectedPrimaryCareActions.
+4. wrongSpecialty: Hvis problemstillingen tilhører et annet fagfelt (nevrologi, indremedisin, revmatologi, etc.), sett dette til true og spesifiser correctSpecialty.
 
 KRITERIER FOR AVSLAG:
 Avvis henvisning (priorityGroup: "rejected") når:
-1. Kan håndteres i primærhelsetjenesten - ikke behov for spesialistkompetanse
-2. Manglende utredning: Ingen/utilstrekkelig bildediagnostikk, mangler klinisk undersøkelse, ingen sykehistorie dokumentert
-3. Utilstrekkelig informasjon: Uklare symptombeskrivelser, mangler viktige opplysninger for triagering
-4. Ingen klar indikasjon: Konservativ behandling ikke forsøkt (fysioterapi, NSAID), stabile/ukompliserte symptomer uten progresjon, ingen røde flagg
+1. FEIL FAGFELT: Problemstillingen tilhører et annet fagfelt enn ortopedi/kirurgi
+   - Nevrologiske tilstander (f.eks. perifer neuropati, CNS-lidelser, nevrodegenerative sykdommer)
+   - Revmatologiske tilstander (f.eks. systemiske autoimmune sykdommer, inflammatorisk artritt)
+   - Indremedisinske tilstander (f.eks. kardiovaskulære, metabolske)
+   - Hudlidelser uten ortopedisk komponent
+   → Sett wrongSpecialty=true og correctSpecialty="[fagfelt]"
+2. Kan håndteres i primærhelsetjenesten - ikke behov for spesialistkompetanse
+3. Manglende utredning: Ingen/utilstrekkelig bildediagnostikk, mangler klinisk undersøkelse, ingen sykehistorie dokumentert
+4. Utilstrekkelig informasjon: Uklare symptombeskrivelser, mangler viktige opplysninger for triagering
+5. Ingen klar indikasjon: Konservativ behandling ikke forsøkt (fysioterapi, NSAID), stabile/ukompliserte symptomer uten progresjon, ingen røde flagg
 
 KRITERIER FOR PRIORITERING:
 - red (≤4 uker): Akutte tilstander, betydelige nevrologiske utfall, progredierende symptomer, røde flagg
@@ -503,6 +512,8 @@ Svar KUN med valid JSON, ingen annen tekst.`
       // rejection objekt (for avviste henvisninger)
       if (parsed.rejection) {
         assessment.rejection = {
+          wrongSpecialty: parsed.rejection.wrongSpecialty || false,
+          correctSpecialty: parsed.rejection.correctSpecialty || undefined,
           missingInformation: parsed.rejection.missingInformation || [],
           expectedPrimaryCareActions: parsed.rejection.expectedPrimaryCareActions || parsed.rejection.primaryCareActions || []
         }

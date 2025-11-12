@@ -215,8 +215,38 @@ Prioritetsgruppe: ${ref.assessment?.priorityGroup || 'Ikke vurdert'}`
     // Open chatbot
     setIsChatOpen(true)
 
-    // Prepare the message
-    const message = `Skriv et forslag til avslagsbrev for Henvisning #${referral.referralNumber}.
+    // Check if this is a wrong specialty rejection
+    const isWrongSpecialty = referral.assessment?.rejection?.wrongSpecialty
+    const correctSpecialty = referral.assessment?.rejection?.correctSpecialty
+
+    let message: string
+
+    if (isWrongSpecialty) {
+      // Generate letter for wrong specialty
+      message = `Skriv et forslag til avslagsbrev for Henvisning #${referral.referralNumber} som er rettet til feil fagfelt.
+
+Bruk følgende informasjon:
+- Tentativ diagnose: ${referral.assessment?.tentativeDiagnosis || 'Ukjent'}
+- Nøkkeloppsummering: ${referral.assessment?.keySummary || 'Ingen oppsummering'}
+- Riktig fagfelt: ${correctSpecialty || 'et annet fagfelt'}
+
+Brevet skal:
+1. Være høflig og profesjonelt
+2. Forklare at problemstillingen faller utenfor ortopedisk avdelings ansvarsområde
+3. Angi at henvisningen tilhører ${correctSpecialty || 'et annet fagfelt'}
+4. Anbefale at fastlegen sender en ny henvisning til riktig fagavdeling
+5. Være konstruktivt og veiledende (ikke kritiserende)
+6. Nevne at pasienten kan kontakte fastlegen for videre oppfølging
+
+Eksempel på struktur:
+- Takk for henvisningen
+- Forklare at vi har vurdert saken
+- Klargjøre at dette er utenfor vårt fagområde
+- Anbefale korrekt fagavdeling
+- Oppfordre til ny henvisning til rett instans`
+    } else {
+      // Generate letter for regular rejection (missing info, primary care actions)
+      message = `Skriv et forslag til avslagsbrev for Henvisning #${referral.referralNumber}.
 
 Bruk følgende informasjon:
 - Tentativ diagnose: ${referral.assessment?.tentativeDiagnosis || 'Ukjent'}
@@ -238,6 +268,7 @@ Brevet skal:
 3. Liste opp hva som mangler
 4. Gi klare anbefalinger til fastlegen om tiltak som bør gjøres først
 5. Oppfordre til ny henvisning når anbefalte tiltak er gjennomført`
+    }
 
     // Send the message
     handleChatSend(message)

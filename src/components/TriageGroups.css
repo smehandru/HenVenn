@@ -175,6 +175,24 @@
   border-radius: 4px;
 }
 
+/* Wrong specialty warning section */
+.wrong-specialty-section {
+  background: #fff4e6;
+  border-left: 4px solid #ff9800;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.wrong-specialty-section h4 {
+  color: #e65100;
+  margin-bottom: 8px;
+}
+
+.wrong-specialty-section p {
+  color: #663c00;
+  line-height: 1.6;
+}
+
 .condition-item {
   margin-bottom: 20px;
   padding-bottom: 16px;

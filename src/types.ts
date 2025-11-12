@@ -30,6 +30,8 @@ export interface ReferralAssessment {
   };
   priorityGroup: 'red' | 'orange' | 'green' | 'rejected';
   rejection?: {
+    wrongSpecialty?: boolean; // True hvis henvisningen tilhører et annet fagfelt
+    correctSpecialty?: string; // Riktig fagfelt (f.eks. "Nevrologi", "Revmatologi")
     missingInformation: string[]; // Hva som mangler
     expectedPrimaryCareActions: string[]; // Forventet tiltak i primærhelsetjenesten (tidligere primaryCareActions)
   };

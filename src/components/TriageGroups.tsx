@@ -148,6 +148,16 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId, onReque
 
                             {config.key === 'rejected' && referral.assessment.rejection ? (
                               <>
+                                {referral.assessment.rejection.wrongSpecialty && (
+                                  <div className="detail-section wrong-specialty-section">
+                                    <h4>⚠️ Feil fagfelt</h4>
+                                    <p>
+                                      Denne henvisningen tilhører <strong>{referral.assessment.rejection.correctSpecialty || 'et annet fagfelt'}</strong> og
+                                      bør ikke vurderes av ortopedisk avdeling.
+                                    </p>
+                                  </div>
+                                )}
+
                                 {referral.assessment.rejection.missingInformation.length > 0 && (
                                   <div className="detail-section">
                                     <h4>Manglende informasjon</h4>

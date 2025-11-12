@@ -4,9 +4,10 @@ import './ResourceLinks.css'
 interface ResourceLinksProps {
   onFileUpload: (file: File) => void
   disabled?: boolean
+  onDemoClick?: () => void
 }
 
-const ResourceLinks = ({ onFileUpload, disabled = false }: ResourceLinksProps) => {
+const ResourceLinks = ({ onFileUpload, disabled = false, onDemoClick }: ResourceLinksProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClick = () => {
@@ -42,6 +43,13 @@ const ResourceLinks = ({ onFileUpload, disabled = false }: ResourceLinksProps) =
 
   return (
     <div className="resource-links">
+      <button
+        className="demo-button"
+        onClick={onDemoClick}
+        disabled={disabled}
+      >
+        🎯 DEMO - Klikk her
+      </button>
       <button
         className="upload-button-primary"
         onClick={handleClick}

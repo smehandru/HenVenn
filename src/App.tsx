@@ -6,7 +6,7 @@ import RightPanel from './components/RightPanel'
 import FloatingChatBot from './components/FloatingChatBot'
 import { Referral, ChatMessage } from './types'
 import { mockReferrals } from './mockData'
-import { processReferralPDF } from './services/referralProcessor'
+import { processReferralPDF, processReferralTexts } from './services/referralProcessor'
 import { createAIService } from './services/aiService'
 import { createChatService } from './services/chatService'
 
@@ -96,6 +96,88 @@ function App() {
 
   const handleReferralSelect = (referral: Referral) => {
     setSelectedReferral(referral)
+  }
+
+  const handleDemoClick = async () => {
+    setIsProcessing(true)
+    setProcessingProgress('Behandler demo-henvisninger...')
+
+    // Define the 7 demo referrals
+    const demoReferralTexts = [
+      `Henvisning 1
+Smerter i kne, prøvd alt. Usikker effekt av smertestillende. Vet ikke hva vi skal gjøre her. Henviser videre.`,
+
+      `Henvisning 2
+Mann, 33 år. Falt under fotballkamp for to dager siden, fikk direkte traume mot høyre skulder. Siden da betydelige smerter og redusert bevegelighet. Ingen hevelse, men tydelig palpasjonsømhet over ac-ledd. Klarer ikke løfte armen over skuldernivå. Røntgen bestilt, men ikke tatt ennå. Ber om vurdering for mulig videre utredning eller behov for MR.`,
+
+      `Henvisning 3
+72 år gammel kvinne falt hjemme på stuegulvet i dag tidlig, slo høyre hofte og klarer ikke å stå eller belaste benet. Har sterke smerter i hofte og lyskeområdet. Ingen hodeskade. Tidligere operert med hofteprotese på venstre side for tre år siden.
+Høyre ben fremstår forkortet og utadrotert. Palpasjonsømhet over trochanterområdet. Klar smerteforverring ved bevegelse. Normal distal sirkulasjon og sensibilitet.
+BT 145/85, puls 92. Afebril. Pasienten er smertepåvirket, men våken og orientert.`,
+
+      `Henvisning 4
+Mann, 27 år. Har hatt diffuse smerter i høyre kne etter løping, uten kjent skade. Ingen hevelse, normal bevegelighet, og stabilt kne ved undersøkelse. Pasienten trener mye, men opplever smerte ved lange løpeturer og trapper. Har ikke tatt røntgen og ikke forsøkt fysioterapi. Mistenker overbelastning, men pasienten ønsker vurdering av ortoped likevel for å være sikker.`,
+
+      `Henvisning 5
+Pasienten har hatt gradvis økende smerter i høyre hofte siste 18 måneder. Smertene er til stede ved belastning, særlig ved gange og trappegang. Han klarer nå kun korte turer før han må stoppe. Ingen akutt skade. Ingen utstrålende smerter. Har fått økende stivhet og redusert bevegelighet i hofteleddet.
+Palpasjonsømhet over lysken og redusert fleksjon og innadrotasjon i høyre hofte. Ingen hevelse. Normal sensibilitet og sirkulasjon distalt.
+Røntgen tatt hos fastlege viser moderat artroseforandring med innsnevret leddspalte.
+Fysioterapi gjennomført i 3 måneder uten vesentlig bedring. Smertelindring med Paracetamol og Ibuprofen har kun delvis effekt.`,
+
+      `Henvisning 6
+Pasient, 54 år gammel mann, tidligere frisk, oppsøker lege grunnet akutt oppstått smerte, hevelse og redusert bevegelighet i høyre kne det siste døgnet.
+Feber (38,9 °C), frysninger og betydelige smerter – kan ikke støtte på benet.
+Ingen kjent traume, nylig infeksjon i luftveier for to uker siden.
+Bruker ingen faste medisiner. Ingen tidligere leddproblematikk. Funn:
+•	Allment påvirket, febril (38,7 °C), puls 108, BT 128/78
+•	Markert hevelse og varmeøkning i høyre kne
+•	Uttalt smerte ved passiv bevegelse, svært redusert bevegelighet
+•	Ingen utslett eller sår, men lett rødlig hud over leddet
+•	Distal sirkulasjon og sensibilitet intakt
+•	ingen tegn til annen infeksjonsfokus`,
+
+      `Henvisning 7
+Pasienten er en 60 år gammel mann som for tre dager siden våknet med plutselig nedsatt kraft i høyre arm og vansker med finmotorikk i hånden. Ingen kjent traume eller belastning. Opplever også lett nummenhet i høyre håndflate og fingre, spesielt tommel og pekefinger.
+Ingen smerter i skulder eller nakke. Ingen utstrålende smerte.
+Tidligere frisk, ikke kjent diabetes eller hypertensjon. Ikke tidligere nevrologisk sykdom.
+Fastlege mistenker "nerve i klem i nakken" og henviser til ortopedisk vurdering for MR og eventuelt operasjon.`
+    ]
+
+    try {
+      // Check if AI is configured
+      const aiService = createAIService()
+
+      if (!aiService) {
+        alert('Ingen AI API-nøkkel funnet.\n\nFor å bruke demo-modus, legg til VITE_OPENAI_API_KEY i .env-filen.')
+        setIsProcessing(false)
+        setProcessingProgress('')
+        return
+      }
+
+      // Process demo referrals with AI
+      setProcessingProgress('Vurderer demo-henvisninger...')
+
+      const processedReferrals = await processReferralTexts(demoReferralTexts, (current, total) => {
+        setProcessingProgress(`Vurderer henvisning ${current} av ${total}...`)
+      })
+
+      setReferrals(processedReferrals)
+      setUploadedFile(new File(['demo'], 'demo.txt'))
+      setProcessingProgress('Ferdig!')
+
+      setTimeout(() => {
+        setIsProcessing(false)
+        setProcessingProgress('')
+      }, 1000)
+    } catch (error) {
+      console.error('Error processing demo referrals:', error)
+      alert(
+        'Feil ved prosessering av demo-henvisninger:\n' +
+          (error instanceof Error ? error.message : 'Ukjent feil')
+      )
+      setIsProcessing(false)
+      setProcessingProgress('')
+    }
   }
 
   const handleChatSend = async (message: string) => {
@@ -302,6 +384,7 @@ Brevet skal:
           onFileUpload={handleFileUpload}
           hasUploadedFile={!!uploadedFile}
           isProcessing={isProcessing}
+          onDemoClick={handleDemoClick}
         />
       </div>
       <FloatingChatBot

@@ -207,6 +207,74 @@ function createMockReferral(text: string, referralNumber: number): Referral {
   }
 }
 
+/**
+ * Process referrals from text array (used for demo mode)
+ */
+export async function processReferralTexts(
+  referralTexts: string[],
+  onProgress?: (current: number, total: number) => void
+): Promise<Referral[]> {
+  try {
+    if (referralTexts.length === 0) {
+      throw new Error('Ingen henvisninger funnet')
+    }
+
+    // Initialize AI service
+    const aiService = createAIService()
+
+    // Get priority guidelines
+    const guidelines = await fetchPriorityGuidelines()
+    const guidelinesText = formatGuidelinesForAI(guidelines)
+
+    if (!aiService) {
+      console.warn('AI service not available - returning referrals without assessment')
+      return referralTexts.map((text, index) => createMockReferral(text, index + 1))
+    }
+
+    // Process each referral with AI
+    const referrals: Referral[] = []
+
+    for (let i = 0; i < referralTexts.length; i++) {
+      const text = referralTexts[i]
+
+      if (onProgress) {
+        onProgress(i + 1, referralTexts.length)
+      }
+
+      try {
+        // Extract basic info
+        const basicInfo = extractBasicInfo(text)
+
+        // Get AI assessment
+        const assessment = await aiService.assessReferral(text, i + 1, guidelinesText)
+
+        // Create referral object
+        const referral: Referral = {
+          id: `ref-demo-${Date.now()}-${i}`,
+          referralNumber: i + 1,
+          patientInfo: basicInfo.patientInfo,
+          symptoms: basicInfo.symptoms,
+          duration: basicInfo.duration,
+          redFlags: basicInfo.redFlags,
+          fullText: text,
+          assessment
+        }
+
+        referrals.push(referral)
+      } catch (error) {
+        console.error(`Error processing referral ${i + 1}:`, error)
+        referrals.push(createMockReferral(text, i + 1))
+      }
+    }
+
+    return referrals
+  } catch (error) {
+    console.error('Error processing referrals:', error)
+    throw error
+  }
+}
+
 export default {
-  processReferralPDF
+  processReferralPDF,
+  processReferralTexts
 }

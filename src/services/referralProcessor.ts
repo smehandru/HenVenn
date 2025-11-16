@@ -1,4 +1,4 @@
-import type { Referral } from '../types'
+import type { Referral, ReferralAssessment } from '../types'
 import { extractReferralsFromPDF, parseReferralsFromText } from './pdfParser'
 import { extractTextFromDocx } from './docxParser'
 import { createAIService } from './aiService'

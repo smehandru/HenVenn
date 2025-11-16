@@ -96,6 +96,91 @@ export class AIService {
   }
 
   /**
+   * Quick triage - only determine priority group without detailed assessment
+   */
+  async quickTriageReferral(
+    referralText: string,
+    priorityGuidelines: string
+  ): Promise<'red' | 'orange' | 'green' | 'rejected'> {
+    const prompt = `Du er en erfaren ortoped som skal gjøre en rask triagering av en henvisning.
+
+PRIORITERINGSVEILEDER:
+${priorityGuidelines}
+
+HENVISNING:
+${referralText}
+
+OPPGAVE:
+Bestem KUN hvilken prioritetsgruppe denne henvisningen tilhører. Svar med ett enkelt ord:
+- "red" (≤4 uker): Akutte tilstander, betydelige nevrologiske utfall, røde flagg
+- "orange" (5-12 uker): Betydelige symptomer, moderat funksjonshemming
+- "green" (>12 uker): Elektive tilstander, stabile symptomer
+- "rejected": Mangler grunnleggende informasjon, kan håndteres i primærhelsetjenesten, feil fagfelt
+
+VIKTIG AVVISNINGSKRITERIER:
+- Mangler pasientinfo (alder/kjønn)
+- Vage symptomer ("smerter i kne, prøvd alt")
+- Mangler klinisk undersøkelse
+- Mangler bildediagnostikk
+- Tilhører annet fagfelt (nevrologi, revmatologi, etc.)
+
+Svar KUN med: red, orange, green, eller rejected`
+
+    let response: string
+
+    if (this.provider === 'claude' && this.anthropic) {
+      response = await this.callClaude(prompt)
+    } else if (this.provider === 'openai' && this.openai) {
+      response = await this.callOpenAI(prompt)
+    } else if (this.provider === 'azure' && this.azureOpenAI) {
+      response = await this.callAzureOpenAI(prompt)
+    } else {
+      throw new Error('AI provider not configured')
+    }
+
+    const cleanResponse = response.trim().toLowerCase()
+    if (cleanResponse.includes('red')) return 'red'
+    if (cleanResponse.includes('orange')) return 'orange'
+    if (cleanResponse.includes('green')) return 'green'
+    if (cleanResponse.includes('rejected')) return 'rejected'
+
+    // Default to green if unclear
+    return 'green'
+  }
+
+  /**
+   * Assess a single referral using AI with streaming support
+   */
+  async assessReferralStreaming(
+    referralText: string,
+    _referralNumber: number,
+    priorityGuidelines: string,
+    onChunk?: (chunk: string) => void
+  ): Promise<ReferralAssessment> {
+    const prompt = this.buildAssessmentPrompt(referralText, priorityGuidelines)
+
+    let fullResponse = ''
+
+    if (this.provider === 'claude' && this.anthropic) {
+      fullResponse = await this.callClaudeStreaming(prompt, onChunk)
+    } else if (this.provider === 'openai' && this.openai) {
+      fullResponse = await this.callOpenAIStreaming(prompt, onChunk)
+    } else if (this.provider === 'azure' && this.azureOpenAI) {
+      fullResponse = await this.callAzureOpenAIStreaming(prompt, onChunk)
+    } else if (this.provider === 'openai-assistant' && this.openai && this.assistantId) {
+      // For OpenAI Assistant, fallback to non-streaming
+      fullResponse = await this.callOpenAIAssistant(referralText)
+    } else if (this.provider === 'copilot' && this.directLine) {
+      // For Copilot Studio, fallback to non-streaming
+      fullResponse = await this.callCopilotStudio(referralText)
+    } else {
+      throw new Error('AI provider not configured')
+    }
+
+    return this.parseAssessmentResponse(fullResponse)
+  }
+
+  /**
    * Assess a single referral using AI
    */
   async assessReferral(
@@ -318,6 +403,39 @@ Svar KUN med valid JSON, ingen annen tekst.`
   }
 
   /**
+   * Call Claude API with streaming
+   */
+  private async callClaudeStreaming(prompt: string, onChunk?: (chunk: string) => void): Promise<string> {
+    if (!this.anthropic) throw new Error('Claude not configured')
+
+    let fullText = ''
+
+    const stream = await this.anthropic.messages.create({
+      model: this.model,
+      max_tokens: 2000,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      stream: true
+    })
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        const chunk = event.delta.text
+        fullText += chunk
+        if (onChunk) {
+          onChunk(chunk)
+        }
+      }
+    }
+
+    return fullText
+  }
+
+  /**
    * Call Claude API
    */
   private async callClaude(prompt: string): Promise<string> {
@@ -343,6 +461,42 @@ Svar KUN med valid JSON, ingen annen tekst.`
   }
 
   /**
+   * Call OpenAI API with streaming
+   */
+  private async callOpenAIStreaming(prompt: string, onChunk?: (chunk: string) => void): Promise<string> {
+    if (!this.openai) throw new Error('OpenAI not configured')
+
+    let fullText = ''
+
+    const stream = await this.openai.chat.completions.create({
+      model: this.model,
+      messages: [
+        {
+          role: 'system',
+          content: 'Du er en erfaren ortoped som vurderer medisinske henvisninger på norsk.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000,
+      stream: true
+    })
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || ''
+      fullText += content
+      if (onChunk && content) {
+        onChunk(content)
+      }
+    }
+
+    return fullText
+  }
+
+  /**
    * Call OpenAI API
    */
   private async callOpenAI(prompt: string): Promise<string> {
@@ -365,6 +519,43 @@ Svar KUN med valid JSON, ingen annen tekst.`
     })
 
     return response.choices[0]?.message?.content || ''
+  }
+
+  /**
+   * Call Azure OpenAI API with streaming
+   */
+  private async callAzureOpenAIStreaming(prompt: string, onChunk?: (chunk: string) => void): Promise<string> {
+    if (!this.azureOpenAI) throw new Error('Azure OpenAI not configured')
+    if (!this.deploymentName) throw new Error('Azure deployment name not configured')
+
+    let fullText = ''
+
+    const stream = await this.azureOpenAI.chat.completions.create({
+      model: this.deploymentName,
+      messages: [
+        {
+          role: 'system',
+          content: 'Du er en erfaren ortoped som vurderer medisinske henvisninger på norsk.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000,
+      stream: true
+    })
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || ''
+      fullText += content
+      if (onChunk && content) {
+        onChunk(content)
+      }
+    }
+
+    return fullText
   }
 
   /**

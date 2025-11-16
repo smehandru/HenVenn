@@ -1,19 +1,21 @@
 import './LeftPanel.css'
 import TriageGroups from './TriageGroups'
-import { Referral } from '../types'
+import { Referral, PriorityGroup } from '../types'
 
 interface LeftPanelProps {
   referrals: Referral[]
   onReferralSelect: (referral: Referral) => void
   selectedReferralId?: string
   onRequestRejectionLetter?: (referral: Referral) => void
+  groupsLoading?: Record<PriorityGroup, boolean>
 }
 
 const LeftPanel = ({
   referrals,
   onReferralSelect,
   selectedReferralId,
-  onRequestRejectionLetter
+  onRequestRejectionLetter,
+  groupsLoading
 }: LeftPanelProps) => {
   return (
     <div className="left-panel">
@@ -26,6 +28,7 @@ const LeftPanel = ({
           onReferralSelect={onReferralSelect}
           selectedReferralId={selectedReferralId}
           onRequestRejectionLetter={onRequestRejectionLetter}
+          groupsLoading={groupsLoading}
         />
         <div className="left-instruction">
           <p>Henvisninger skal her triageres etter anbefalt inntaksfrist</p>

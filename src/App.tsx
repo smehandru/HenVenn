@@ -4,9 +4,9 @@ import Header from './components/Header'
 import LeftPanel from './components/LeftPanel'
 import RightPanel from './components/RightPanel'
 import FloatingChatBot from './components/FloatingChatBot'
-import { Referral, ChatMessage } from './types'
+import { Referral, ChatMessage, PriorityGroup, ReferralAssessment } from './types'
 import { mockReferrals } from './mockData'
-import { processReferralPDF, processReferralTexts } from './services/referralProcessor'
+import { processReferralPDF, processDemoReferralsWithStreaming } from './services/referralProcessor'
 import { createAIService } from './services/aiService'
 import { createChatService } from './services/chatService'
 
@@ -20,6 +20,12 @@ function App() {
   const [processingProgress, setProcessingProgress] = useState<string>('')
   const [useMockData, setUseMockData] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [groupsLoading, setGroupsLoading] = useState<Record<PriorityGroup, boolean>>({
+    red: false,
+    orange: false,
+    green: false,
+    rejected: false
+  })
 
   // Initialize chat service for the floating chatbot
   const chatService = createChatService()
@@ -99,9 +105,6 @@ function App() {
   }
 
   const handleDemoClick = async () => {
-    setIsProcessing(true)
-    setProcessingProgress('Behandler demo-henvisninger...')
-
     // Define the 7 demo referrals
     const demoReferralTexts = [
       `Henvisning 1
@@ -149,34 +152,36 @@ Fastlege mistenker "nerve i klem i nakken" og henviser til ortopedisk vurdering 
 
       if (!aiService) {
         alert('Ingen AI API-nøkkel funnet.\n\nFor å bruke demo-modus, legg til VITE_OPENAI_API_KEY i .env-filen.')
-        setIsProcessing(false)
-        setProcessingProgress('')
         return
       }
 
-      // Process demo referrals with AI
-      setProcessingProgress('Vurderer demo-henvisninger...')
-
-      const processedReferrals = await processReferralTexts(demoReferralTexts, (current, total) => {
-        setProcessingProgress(`Vurderer henvisning ${current} av ${total}...`)
-      })
-
-      setReferrals(processedReferrals)
-      setUploadedFile(new File(['demo'], 'demo.txt'))
-      setProcessingProgress('Ferdig!')
-
-      setTimeout(() => {
-        setIsProcessing(false)
-        setProcessingProgress('')
-      }, 1000)
+      // Process demo referrals with new two-phase approach
+      await processDemoReferralsWithStreaming(
+        demoReferralTexts,
+        // Phase 1 complete: Display triaged referrals immediately
+        (triagedreferrals) => {
+          setReferrals(triagedreferrals)
+          setUploadedFile(new File(['demo'], 'demo.txt'))
+        },
+        // Phase 2: Update individual referral assessments
+        (referralId: string, assessment: ReferralAssessment) => {
+          setReferrals((prevReferrals: Referral[]) =>
+            prevReferrals.map((ref: Referral) =>
+              ref.id === referralId ? { ...ref, assessment } : ref
+            )
+          )
+        },
+        // Track loading state for each group
+        (group: PriorityGroup, isLoading: boolean) => {
+          setGroupsLoading((prev: Record<PriorityGroup, boolean>) => ({ ...prev, [group]: isLoading }))
+        }
+      )
     } catch (error) {
       console.error('Error processing demo referrals:', error)
       alert(
         'Feil ved prosessering av demo-henvisninger:\n' +
           (error instanceof Error ? error.message : 'Ukjent feil')
       )
-      setIsProcessing(false)
-      setProcessingProgress('')
     }
   }
 
@@ -382,6 +387,7 @@ Brevet skal:
           onReferralSelect={handleReferralSelect}
           selectedReferralId={selectedReferral?.id}
           onRequestRejectionLetter={handleRequestRejectionLetter}
+          groupsLoading={groupsLoading}
         />
         <div className="divider" />
         <RightPanel

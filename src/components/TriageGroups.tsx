@@ -7,6 +7,7 @@ interface TriageGroupsProps {
   onReferralSelect: (referral: Referral) => void
   selectedReferralId?: string
   onRequestRejectionLetter?: (referral: Referral) => void
+  groupsLoading?: Record<PriorityGroup, boolean>
 }
 
 interface GroupConfig {
@@ -43,7 +44,7 @@ const groupConfigs: GroupConfig[] = [
   }
 ]
 
-const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId, onRequestRejectionLetter }: TriageGroupsProps) => {
+const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId, onRequestRejectionLetter, groupsLoading }: TriageGroupsProps) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<PriorityGroup>>(new Set())
   const [expandedReferrals, setExpandedReferrals] = useState<Set<string>>(new Set())
 
@@ -76,6 +77,7 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId, onReque
       {groupConfigs.map(config => {
         const groupReferrals = getReferralsByGroup(config.key)
         const isExpanded = expandedGroups.has(config.key)
+        const isLoading = groupsLoading?.[config.key] || false
 
         return (
           <div key={config.key} className="triage-group">
@@ -91,7 +93,10 @@ const TriageGroups = ({ referrals, onReferralSelect, selectedReferralId, onReque
                 <span className="title-text">{config.title}</span>
                 <span className="count-badge">({groupReferrals.length})</span>
               </div>
-              <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+              <div className="group-header-right">
+                {isLoading && <span className="group-spinner"></span>}
+                <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
+              </div>
             </div>
 
             {isExpanded && (

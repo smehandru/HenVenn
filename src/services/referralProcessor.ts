@@ -274,7 +274,106 @@ export async function processReferralTexts(
   }
 }
 
+/**
+ * Process demo referrals with two-phase approach:
+ * Phase 1: Quick triage - assign priority groups immediately
+ * Phase 2: Stream detailed assessments group by group (red → orange → green → rejected)
+ */
+export async function processDemoReferralsWithStreaming(
+  referralTexts: string[],
+  onTriageComplete: (referrals: Referral[]) => void,
+  onAssessmentUpdate: (referralId: string, assessment: ReferralAssessment) => void,
+  onGroupLoadingChange: (group: 'red' | 'orange' | 'green' | 'rejected', isLoading: boolean) => void
+): Promise<Referral[]> {
+  try {
+    if (referralTexts.length === 0) {
+      throw new Error('Ingen henvisninger funnet')
+    }
+
+    const aiService = createAIService()
+    if (!aiService) {
+      throw new Error('AI service not available')
+    }
+
+    const guidelines = await fetchPriorityGuidelines()
+    const guidelinesText = formatGuidelinesForAI(guidelines)
+
+    // PHASE 1: Quick triage - assign groups without detailed assessments
+    console.log('Phase 1: Quick triage...')
+    const triagePromises = referralTexts.map(async (text, index) => {
+      const basicInfo = extractBasicInfo(text)
+      const priorityGroup = await aiService.quickTriageReferral(text, guidelinesText)
+
+      return {
+        id: `ref-demo-${Date.now()}-${index}`,
+        referralNumber: index + 1,
+        patientInfo: basicInfo.patientInfo,
+        symptoms: basicInfo.symptoms,
+        duration: basicInfo.duration,
+        redFlags: basicInfo.redFlags,
+        fullText: text,
+        assessment: {
+          keySummary: 'Vurdering pågår...',
+          tentativeDiagnosis: 'Analyseres...',
+          priorityGroup
+        }
+      } as Referral
+    })
+
+    const referrals = await Promise.all(triagePromises)
+
+    // Notify that triage is complete - UI can now display groups
+    onTriageComplete(referrals)
+
+    // PHASE 2: Generate detailed assessments group by group with streaming
+    console.log('Phase 2: Detailed assessments...')
+    const groupOrder: ('red' | 'orange' | 'green' | 'rejected')[] = ['red', 'orange', 'green', 'rejected']
+
+    for (const group of groupOrder) {
+      const groupReferrals = referrals.filter(r => r.assessment?.priorityGroup === group)
+
+      if (groupReferrals.length === 0) continue
+
+      // Signal that this group is now loading
+      onGroupLoadingChange(group, true)
+
+      // Process all referrals in this group sequentially
+      for (const referral of groupReferrals) {
+        try {
+          let streamedText = ''
+
+          const assessment = await aiService.assessReferralStreaming(
+            referral.fullText,
+            referral.referralNumber,
+            guidelinesText,
+            (chunk) => {
+              // Accumulate streamed text (though we don't show it in real-time)
+              streamedText += chunk
+            }
+          )
+
+          // Update the referral with the complete assessment
+          referral.assessment = assessment
+          onAssessmentUpdate(referral.id, assessment)
+        } catch (error) {
+          console.error(`Error assessing referral ${referral.referralNumber}:`, error)
+          // Keep the basic assessment with priority group
+        }
+      }
+
+      // Signal that this group is done loading
+      onGroupLoadingChange(group, false)
+    }
+
+    return referrals
+  } catch (error) {
+    console.error('Error processing demo referrals:', error)
+    throw error
+  }
+}
+
 export default {
   processReferralPDF,
-  processReferralTexts
+  processReferralTexts,
+  processDemoReferralsWithStreaming
 }

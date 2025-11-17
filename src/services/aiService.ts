@@ -772,6 +772,14 @@ export function createAIService(): AIService | null {
   const azureEndpoint = import.meta.env.VITE_AZURE_OPENAI_ENDPOINT
   const azureDeployment = import.meta.env.VITE_AZURE_OPENAI_DEPLOYMENT_NAME
 
+  // Debug: Log what environment variables are available
+  console.log('Environment check:', {
+    hasOpenAI: !!openaiKey,
+    hasAssistant: !!openaiAssistantId,
+    hasClaude: !!claudeKey,
+    openaiKeyPrefix: openaiKey ? openaiKey.substring(0, 7) + '...' : 'undefined'
+  })
+
   // Prioriter OpenAI Assistant først (best for egendefinert agent med kunnskapsbase)
   if (openaiKey && openaiAssistantId) {
     return new AIService({
